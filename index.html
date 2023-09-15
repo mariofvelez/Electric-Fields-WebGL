@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>WebGL Test</title>
+</head>
+<body>
+    <script id="Vertex-shader" type="vertex">
+        #version 300 es
+
+        layout (location = 0) in vec3 position;
+        layout (location = 1) in vec3 normal;
+
+        out vec3 vPos;
+        out vec3 vNormal;
+
+        uniform mat4 uViewProjection;
+        uniform mat4 uModel;
+
+        void main()
+        {
+            vec4 pos = vec4(position, 1.0);
+            vPos = (uModel * pos).xyz;
+            vNormal = (uModel * vec4(normal, 0.0)).xyz;
+            gl_Position = uViewProjection * uModel * pos;
+        }
+    </script>
+    <script id="Fragment-shader" type="fragment">
+        #version 300 es
+        precision highp float;
+
+        in vec3 vPos;
+        in vec3 vNormal;
+        out vec4 fragColor;
+
+        uniform float uCharge;
+
+        void main()
+        {
+            vec3 light_dir = normalize(vec3(5, 5, 5) - vPos);
+            vec3 normal = normalize(vNormal);
+            float light = clamp(dot(light_dir, normal), 0.0, 1.0) * 0.5;
+
+            light += 0.5;
+
+            vec3 warm = vec3(1.0, 0.447, 0.23);
+            vec3 cool = vec3(0.184, 0.0588, 0.569);
+
+            fragColor = vec4((mix(cool, warm, (uCharge / 20.0) + 0.5) * light), 1.0);
+        }
+    </script>
+    <script id="GridVertex-shader" type="vertex">
+        #version 300 es
+
+        layout (location = 0) in vec3 position;
+
+        uniform mat4 uViewProjection;
+        uniform mat4 uModel;
+
+        void main()
+        {
+            vec4 pos = vec4(position, 1.0);
+            gl_Position = uViewProjection * uModel * pos;
+        }
+    </script>
+    <script id="GridFragment-shader" type="fragment">
+        #version 300 es
+        precision highp float;
+
+        out vec4 fragColor;
+
+        void main()
+        {
+            fragColor = vec4(0.702, 0.98, 0.106, 1.0);
+        }
+    </script>
+    <script id="ArrowVertex-shader" type="vertex">
+        #version 300 es
+
+        layout (location = 0) in vec3 position;
+        layout (location = 1) in mat4 model;
+
+        uniform mat4 uViewProjection;
+
+        void main()
+        {
+            vec4 pos = vec4(position, 1.0);
+            gl_Position = uViewProjection * model * pos;
+        }
+    </script>
+    <script id="ArrowFragment-shader" type="fragment">
+        #version 300 es
+        precision highp float;
+
+        out vec4 fragColor;
+
+        void main()
+        {
+            fragColor = vec4(0.32, 0.83, 1.0, 1.0);
+        }
+    </script>
+    <div>
+        <button id="add-charge-button">Add Charge</button>
+        <input type="range" min="1" max="100" value="10" id="test-slider">
+    </div>
+    <div id="controls">
+
+    </div>
+    <div class="container">
+        <canvas id="c"></canvas>
+    </div>
+    <script src="gl-matrix.js"></script>
+    <script src="application.js"></script>
+</body>
+</html>
