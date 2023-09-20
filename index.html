@@ -111,6 +111,40 @@
         // shapes go here
         uniform vec3 pos;
 
+        struct Point {
+            vec3 pos;
+            float charge;
+        };
+        struct LineSegment {
+            vec3 a;
+            vec3 b;
+            float lambda;
+        };
+        struct Plane {
+            vec3 normal;
+            vec3 pos;
+            float sigma;
+        };
+        struct Ring {
+            vec3 normal;
+            vec3 pos;
+            float radius;
+            float lambda;
+        };
+        struct Disc {
+            vec3 normal;
+            vec3 pos;
+            float radius;
+            float sigma;
+        };
+        struct Washer {
+            vec3 normal;
+            vec3 pos;
+            float inner;
+            float outer;
+            float sigma;
+        };
+
         void main()
         {
             // calculate electric field vector at vpos
