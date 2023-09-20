@@ -99,6 +99,39 @@
             fragColor = vec4(0.32, 0.83, 1.0, 1.0);
         }
     </script>
+    <script id="ArrowComputeVertex-shader" type="vertex">
+        # version 300 es
+
+        layout (location = 0) in vec3 vpos; // position of the vector
+
+        out mat4 transform; // output transform
+
+        uniform mat4 grid_matrix;
+
+        // shapes go here
+        uniform vec3 pos;
+
+        void main()
+        {
+            // calculate electric field vector at vpos
+            // this one just calculates the direction away from the field
+            vec3 z = normalize(vpos - pos);
+            
+            // calculate orientation matrix
+            vec3 x = normalize(cross(vpos, vec3(0.0003, 1.0, 0.0001)));
+            vec3 y = normalize(cross(z, x));
+
+            transform[0] = vec4(x, 0.0);//vec4(x, vpos.x);
+            transform[1] = vec4(y, 0.0);//vec4(y, vpos.y);
+            transform[2] = vec4(z, 0.0);//vec4(z, vpos.z);
+            transform[3] = vec4(vpos, 1.0);
+        }
+    </script>
+    <script id="ArrowComputeFragment-shader" type="fragment">
+        #version 300 es
+        precision highp float;
+        void main() {}
+    </script>
     <div>
         <button id="add-charge-button">Add Charge</button>
         <input type="range" min="1" max="100" value="10" id="test-slider">

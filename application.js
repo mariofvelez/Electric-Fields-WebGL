@@ -49,11 +49,50 @@ function createProgram(vertex_source, fragment_source)
     return program;
 }
 
+function createComputeProgram(vertex_source, fragment_source) {
+    var vertexShaderSource = document.querySelector(vertex_source).text.trim();
+    var fragmentShaderSource = document.querySelector(fragment_source).text.trim();
+
+    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexShaderSource);
+    gl.compileShader(vertexShader);
+
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(vertexShader));
+    }
+
+    // fragment shader
+    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.compileShader(fragmentShader);
+
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(fragmentShader));
+    }
+
+    // shader program
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+
+    gl.transformFeedbackVaryings(program, ['transform'], gl.INTERLEAVED_ATTRIBS);
+
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error(gl.getProgramInfoLog(program));
+    }
+
+    return program;
+}
+
 var program = createProgram("#Vertex-shader", "#Fragment-shader");
 
 var grid_program = createProgram("#GridVertex-shader", "#GridFragment-shader");
 
 var arrow_program = createProgram("#ArrowVertex-shader", "#ArrowFragment-shader");
+
+var arrow_compute_program = createComputeProgram("#ArrowComputeVertex-shader", "#ArrowComputeFragment-shader");
 
 gl.useProgram(program);
 
@@ -68,6 +107,9 @@ var model_loc_grid = gl.getUniformLocation(grid_program, "uModel");
 
 var proj_loc_arrow = gl.getUniformLocation(arrow_program, "uViewProjection");
 var model_loc_arrow = gl.getUniformLocation(arrow_program, "uModel");
+
+var grid_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "grid_matrix");
+var pos_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos");
 
 // geometry
 
@@ -138,10 +180,12 @@ function createGrid(norm, scale, width)
     var vertex_size = 12 * width + 12;
     var index_size = 4 * (width + 1);
     // model uniforms for instanced arrows
+    var arrow_size =   3 * (width + 1) * (width + 1) * (width + 1);
     var matrix_size = 16 * (width + 1) * (width + 1) * (width + 1);
 
     var vertices = new Float32Array(vertex_size);
     var indices = new Uint32Array(index_size);
+    var arrow_vertices = new Float32Array(arrow_size);
     var matrices = new Float32Array(matrix_size);
 
     var normal = vec3.create();
@@ -202,7 +246,6 @@ function createGrid(norm, scale, width)
         indices[i] = i;
     }
 
-    // converting grid matrix to mat4
     var grid_mat = mat4.create();
     grid_mat[0] = grid_matrix[0];
     grid_mat[1] = grid_matrix[1];
@@ -226,15 +269,14 @@ function createGrid(norm, scale, width)
             {
                 var px = ((x / width) - 0.5) * dist * 2;
             
-                var mat = mat4.create();
-                mat4.scalar.translate(mat, mat, vec3.fromValues(px, pz, py));
+                var pos = vec4.fromValues(px, py, pz, 1.0);
 
-                mat4.multiply(mat, mat, grid_mat);
+                vec4.transformMat4(pos, pos, grid_mat);
 
-                for (var i = 0; i < 16; ++i)
-                {
-                    matrices[index * 16 + i] = mat[i];
-                }
+                arrow_vertices[index * 3 + 0] = pos[0];
+                arrow_vertices[index * 3 + 1] = pos[1];
+                arrow_vertices[index * 3 + 2] = pos[2];
+
                 ++index;
             }
         }
@@ -244,7 +286,9 @@ function createGrid(norm, scale, width)
     return {
         vertices: vertices,
         indices: indices,
-        matrices: matrices
+        arrow_vertices: arrow_vertices,
+        matrices: matrices,
+        grid_matrix: grid_mat
     }
 }
 
@@ -540,6 +584,23 @@ var aEBO = gl.createBuffer();
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, aEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrow.indices, gl.STATIC_DRAW);
 
+// creating arrow compute buffers
+var acVAO = gl.createVertexArray();
+gl.bindVertexArray(acVAO);
+
+var arrow_pos_buffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, arrow_pos_buffer);
+gl.bufferData(gl.ARRAY_BUFFER, grid.arrow_vertices, gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
+
+var acTF = gl.createTransformFeedback();
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, acTF);
+
+gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, model_buffer);
+
+gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
 // MVP matrices
 
 var cam_dist = 6.0;
@@ -667,6 +728,24 @@ function draw(time)
 
     gl.bindVertexArray(gVAO);
     gl.drawElements(gl.LINES, grid.indices.length, gl.UNSIGNED_INT, 0);
+
+    // arrow compute
+    gl.useProgram(arrow_compute_program);
+
+    gl.uniformMatrix4fv(grid_loc_arrow_compute, false, grid.grid_matrix);
+    gl.uniform3f(pos_loc_arrow_compute, spheres[0].position[0], spheres[0].position[1], spheres[0].position[2]);
+
+    gl.bindVertexArray(acVAO);
+
+    gl.enable(gl.RASTERIZER_DISCARD);
+
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, acTF);
+    gl.beginTransformFeedback(gl.POINTS);
+    gl.drawArrays(gl.POINTS, 0, grid.arrow_vertices.length / 3);
+    gl.endTransformFeedback();
+    gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+
+    gl.disable(gl.RASTERIZER_DISCARD);
 
     // arrows
     gl.useProgram(arrow_program);
