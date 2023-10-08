@@ -75,7 +75,7 @@ function createComputeProgram(vertex_source, fragment_source) {
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
 
-    gl.transformFeedbackVaryings(program, ['transform'], gl.INTERLEAVED_ATTRIBS);
+    gl.transformFeedbackVaryings(program, ['color', 'transform'], gl.INTERLEAVED_ATTRIBS);
 
     gl.linkProgram(program);
 
@@ -110,6 +110,7 @@ var model_loc_arrow = gl.getUniformLocation(arrow_program, "uModel");
 
 var grid_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "grid_matrix");
 var pos_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos");
+var charge_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "charge");
 
 // geometry
 
@@ -181,7 +182,7 @@ function createGrid(norm, scale, width)
     var index_size = 4 * (width + 1);
     // model uniforms for instanced arrows
     var arrow_size =   3 * (width + 1) * (width + 1) * (width + 1);
-    var matrix_size = 16 * (width + 1) * (width + 1) * (width + 1);
+    var matrix_size = (16 + 3) * (width + 1) * (width + 1) * (width + 1); // stores color and transform f each arrow, interleaved
 
     var vertices = new Float32Array(vertex_size);
     var indices = new Uint32Array(index_size);
@@ -522,8 +523,10 @@ addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius * 2, 1.0);
 
 console.log("num spheres " + spheres.length);
 
+var grid_w = 10;
+
 // creating grid
-var grid = createGrid(vec3.fromValues(0.0, 1.0, 0.0), 0.5, 10);
+var grid = createGrid(vec3.fromValues(0.0, 1.0, 0.0), 0.5, grid_w);
 
 console.log("grid:" + grid);
 
@@ -555,29 +558,37 @@ var aVAO = gl.createVertexArray();
 
 gl.bindVertexArray(aVAO);
 
+// vertex buffer
 gl.bindBuffer(gl.ARRAY_BUFFER, aVBO);
 gl.bufferData(gl.ARRAY_BUFFER, arrow.vertices, gl.STATIC_DRAW);
 
 gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
 gl.enableVertexAttribArray(0);
 
-var model_buffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, model_buffer);
+// color-model buffer
+var color_model_buffer = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, color_model_buffer);
 gl.bufferData(gl.ARRAY_BUFFER, grid.matrices, gl.DYNAMIC_DRAW);
 
+// color
 gl.enableVertexAttribArray(1);
-gl.vertexAttribPointer(1, 4, gl.FLOAT, false, 16 * 4, 0);
-gl.enableVertexAttribArray(2);
-gl.vertexAttribPointer(2, 4, gl.FLOAT, false, 16 * 4, 16);
-gl.enableVertexAttribArray(3);
-gl.vertexAttribPointer(3, 4, gl.FLOAT, false, 16 * 4, 32);
-gl.enableVertexAttribArray(4);
-gl.vertexAttribPointer(4, 4, gl.FLOAT, false, 16 * 4, 48);
-
+gl.vertexAttribPointer(1, 3, gl.FLOAT, false, (16 + 3) * 4, 0);
 gl.vertexAttribDivisor(1, 1);
+
+// model
+gl.enableVertexAttribArray(2);
+gl.vertexAttribPointer(2, 4, gl.FLOAT, false, (16 + 3) * 4, 12);
+gl.enableVertexAttribArray(3);
+gl.vertexAttribPointer(3, 4, gl.FLOAT, false, (16 + 3) * 4, 16 + 12);
+gl.enableVertexAttribArray(4);
+gl.vertexAttribPointer(4, 4, gl.FLOAT, false, (16 + 3) * 4, 32 + 12);
+gl.enableVertexAttribArray(5);
+gl.vertexAttribPointer(5, 4, gl.FLOAT, false, (16 + 3) * 4, 48 + 12);
+
 gl.vertexAttribDivisor(2, 1);
 gl.vertexAttribDivisor(3, 1);
 gl.vertexAttribDivisor(4, 1);
+gl.vertexAttribDivisor(5, 1);
 
 var aEBO = gl.createBuffer();
 
@@ -597,7 +608,7 @@ gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
 var acTF = gl.createTransformFeedback();
 gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, acTF);
 
-gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, model_buffer);
+gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, color_model_buffer);
 
 gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
 
@@ -734,6 +745,7 @@ function draw(time)
 
     gl.uniformMatrix4fv(grid_loc_arrow_compute, false, grid.grid_matrix);
     gl.uniform3f(pos_loc_arrow_compute, spheres[0].position[0], spheres[0].position[1], spheres[0].position[2]);
+    gl.uniform1f(charge_loc_arrow_compute, spheres[0].charge);
 
     gl.bindVertexArray(acVAO);
 
@@ -757,7 +769,7 @@ function draw(time)
     gl.uniformMatrix4fv(model_loc_arrow, false, arrow_model);
 
     gl.bindVertexArray(aVAO);
-    gl.drawElementsInstanced(gl.TRIANGLES, arrow.indices.length, gl.UNSIGNED_INT, 0, grid.matrices.length / 16);
+    gl.drawElementsInstanced(gl.TRIANGLES, arrow.indices.length, gl.UNSIGNED_INT, 0, grid.matrices.length / (16 + 3));
 
     requestAnimationFrame(draw);
 }

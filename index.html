@@ -78,7 +78,10 @@
         #version 300 es
 
         layout (location = 0) in vec3 position;
-        layout (location = 1) in mat4 model;
+        layout (location = 1) in vec3 color;
+        layout (location = 2) in mat4 model;
+
+        out vec3 Color;
 
         uniform mat4 uViewProjection;
 
@@ -86,17 +89,20 @@
         {
             vec4 pos = vec4(position, 1.0);
             gl_Position = uViewProjection * model * pos;
+            Color = color;
         }
     </script>
     <script id="ArrowFragment-shader" type="fragment">
         #version 300 es
         precision highp float;
 
+        in vec3 Color;
+
         out vec4 fragColor;
 
         void main()
         {
-            fragColor = vec4(0.32, 0.83, 1.0, 1.0);
+            fragColor = vec4(Color, 1.0);
         }
     </script>
     <script id="ArrowComputeVertex-shader" type="vertex">
@@ -104,21 +110,28 @@
 
         layout (location = 0) in vec3 vpos; // position of the vector
 
+        out vec3 color;     // output color
         out mat4 transform; // output transform
 
         uniform mat4 grid_matrix;
+        float E0 = 1.0;
+        float pi = 3.14159265358979;
+
+        float min_color = 0.01;
+        float max_color = 1.0;
 
         // shapes go here
         uniform vec3 pos;
+        uniform float charge;
 
         struct Point {
             vec3 pos;
-            float charge;
+            float q;
         };
         struct LineSegment {
             vec3 a;
             vec3 b;
-            float lambda;
+            float q;
         };
         struct Plane {
             vec3 normal;
@@ -145,15 +158,73 @@
             float sigma;
         };
 
+        float map(float value, float min1, float max1, float min2, float max2) {
+            return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+        }
+
+        vec3 computePoint(Point point, vec3 pos)
+        {
+            vec3 dist_v = pos - point.pos;
+            float r2 = dot(dist_v, dist_v);
+            float E = 1.0 / (4.0 * pi * E0) * (point.q / r2);
+            vec3 Exyz = normalize(dist_v);
+
+            Exyz *= E;
+
+            return Exyz;
+        }
+
+        vec3 computeLineSegment(LineSegment ls, vec3 pos)
+        {
+            float dq_length = 10.0;
+            vec3 Exyz = vec3(0.0, 0.0, 0.0);
+            float dq = ls.q / dq_length;
+            for(float i = 0.0; i < dq_length; ++i)
+            {
+                vec3 p = mix(ls.a, ls.b, (i / dq_length) + (1.0 / (dq_length * 2.0))); // middle of dl
+
+                vec3 dist_v = pos - p;
+                float r2 = dot(dist_v, dist_v);
+                float dE = 1.0 / (4.0 * pi * E0) * (dq / r2);
+                vec3 dExyz = normalize(dist_v);
+                dExyz *= dE;
+                Exyz += dExyz;
+            }
+            return Exyz;
+        }
+
+        /*vec3 computePlane(Plane plane, vec3 pos)
+        {
+            
+        }*/
+
         void main()
         {
             // calculate electric field vector at vpos
             // this one just calculates the direction away from the field
-            vec3 z = normalize(vpos - pos);
-            
+            Point Q1;
+            Q1.pos = pos;
+            Q1.q = charge;
+            LineSegment Q2;
+            Q2.a = pos;
+            Q2.b = vec3(0.0, -2.0, 0.0);
+            Q2.q = 20.0;
+            vec3 z = computePoint(Q1, vpos);//computeLineSegment(Q2, vpos);
+
+            float mag = length(z);
+
+            // generate color
+            float col = clamp(mag, min_color, max_color);
+            col = map(col, min_color, max_color, 0.0, 1.0);
+            color = mix(vec3(0.0, 0.0117, 0.6784), vec3(0.941, 0.2039, 0.1215), col);
+
+            // clamp z between min and max value
+            float arrow_size = clamp(mag, 0.05, 1.0);
+            z *= (arrow_size / mag);
+
             // calculate orientation matrix
-            vec3 x = normalize(cross(vpos, vec3(0.0003, 1.0, 0.0001)));
-            vec3 y = normalize(cross(z, x));
+            vec3 x = normalize(cross(vpos, vec3(0.0003, 1.0, 0.0001))) * arrow_size;
+            vec3 y = normalize(cross(z, x)) * arrow_size;
 
             transform[0] = vec4(x, 0.0);//vec4(x, vpos.x);
             transform[1] = vec4(y, 0.0);//vec4(y, vpos.y);
