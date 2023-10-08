@@ -110,6 +110,7 @@ var model_loc_arrow = gl.getUniformLocation(arrow_program, "uModel");
 
 var grid_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "grid_matrix");
 var pos_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos");
+var pos2_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos2");
 var charge_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "charge");
 
 // geometry
@@ -745,6 +746,7 @@ function draw(time)
 
     gl.uniformMatrix4fv(grid_loc_arrow_compute, false, grid.grid_matrix);
     gl.uniform3f(pos_loc_arrow_compute, spheres[0].position[0], spheres[0].position[1], spheres[0].position[2]);
+    gl.uniform3f(pos2_loc_arrow_compute, spheres[1].position[0], spheres[1].position[1], spheres[1].position[2]);
     gl.uniform1f(charge_loc_arrow_compute, spheres[0].charge);
 
     gl.bindVertexArray(acVAO);
