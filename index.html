@@ -177,12 +177,12 @@
 
         vec3 computeLineSegment(LineSegment ls, vec3 pos)
         {
-            float dq_length = 10.0;
+            float subdivisions = 10.0;
             vec3 Exyz = vec3(0.0, 0.0, 0.0);
-            float dq = ls.q / dq_length;
-            for(float i = 0.0; i < dq_length; ++i)
+            float dq = ls.q / subdivisions;
+            for(float i = 0.0; i < subdivisions; ++i)
             {
-                vec3 p = mix(ls.a, ls.b, (i / dq_length) + (1.0 / (dq_length * 2.0))); // middle of dl
+                vec3 p = mix(ls.a, ls.b, (i / subdivisions) + (1.0 / (subdivisions * 2.0))); // middle of dl
 
                 vec3 dist_v = pos - p;
                 float r2 = dot(dist_v, dist_v);
@@ -203,17 +203,17 @@
 
         vec3 computeRing(Ring ring, vec3 pos)
         {
-            float dq_length = 100.0;
+            float subdivisions = 100.0;
             vec3 Exyz = vec3(0.0, 0.0, 0.0);
-            float dq = ring.q / dq_length;
+            float dq = ring.q / subdivisions;
             vec3 up = vec3(0.001, 0.32861, -0.2381); // pre-compute a normalized up vector
             up = normalize(up);
             vec3 tz = ring.normal;
             vec3 tx = normalize(cross(tz, up));
             vec3 ty = normalize(cross(tz, tx));
-            for(float i = 0.0; i < dq_length; ++i)
+            for(float i = 0.0; i < subdivisions; ++i)
             {
-                float angle = (2.0 * pi * i) / dq_length;
+                float angle = (2.0 * pi * i) / subdivisions;
                 vec2 uv = vec2(ring.radius * cos(angle), ring.radius * sin(angle));
                 vec3 p = uv.x * tx + uv.y * ty + ring.pos;
 
@@ -227,38 +227,85 @@
             return Exyz;
         }
 
+        vec3 computeDisc(Disc disc, vec3 pos)
+        {
+            float subdivisions_r = 10.0;
+            float subdivisions_theta = 10.0;
+            float dtheta = 1.0 / subdivisions_theta;
+            float dr = 1.0 / subdivisions_r;
+
+            vec3 Exyz = vec3(0.0, 0.0, 0.0);
+
+            vec3 up = vec3(0.001, 0.32861, -0.2381); // pre-compute a normalized up vector
+            up = normalize(up);
+            vec3 tz = disc.normal;
+            vec3 tx = normalize(cross(tz, up));
+            vec3 ty = normalize(cross(tz, tx));
+            for(float i = 0.0; i < subdivisions_r; ++i) // r
+            {
+                float r = i / subdivisions_r * disc.radius;
+                float ds = r * dtheta;
+                for(float j = 0.0; j < subdivisions_theta; ++j) // theta
+                {
+                    float theta = 2.0 * pi * j / subdivisions_theta;
+                    float dA = dr * ds;
+                    float dq = disc.sigma * dA;
+
+                    vec2 uv = vec2(r * cos(theta), r * sin(theta));
+                    vec3 p = uv.x * tx + uv.y * ty + disc.pos;
+
+                    vec3 dist_v = pos - p;
+                    float r2 = dot(dist_v, dist_v);
+                    float dE = 1.0 / (4.0 * pi * E0) * (dq / r2);
+                    vec3 dExyz = normalize(dist_v);
+                    dExyz *= dE;
+                    Exyz += dExyz;
+                }
+            }
+            return Exyz;
+        }
+
         void main()
         {
             // calculate electric field vector at vpos
             // point charge
-            Point Q1;
+            /*Point Q1;
             Q1.pos = pos;
-            Q1.q = charge;
+            Q1.q = charge;*/
 
             // line segment charge
-            LineSegment Q2;
+            /*LineSegment Q2;
             Q2.a = pos;
             Q2.b = pos2;
-            Q2.q = charge * 4.0;
+            Q2.q = charge * 4.0;*/
 
             // infinite plane charge
-            Plane Q3;
+            /*Plane Q3;
             Q3.normal = normalize(pos2 - pos);
             Q3.pos = pos;
-            Q3.sigma = charge;
+            Q3.sigma = charge;*/
 
             // ring charge
-            Ring Q4;
+            /*Ring Q4;
             vec3 dir = pos2 - pos;
             Q4.normal = normalize(dir);
             Q4.pos = pos;
             Q4.radius = length(dir);
-            Q4.q = charge * 4.0;
+            Q4.q = charge * 4.0;*/
+
+            // disc charge
+            Disc Q5;
+            vec3 dir = pos2 - pos;
+            Q5.normal = normalize(dir);
+            Q5.pos = pos;
+            Q5.radius = length(dir);
+            Q5.sigma = charge * 4.0;
 
             //vec3 z = computePoint(Q1, vpos);
             //vec3 z = computeLineSegment(Q2, vpos);
             //vec3 z = computePlane(Q3, vpos);
-            vec3 z = computeRing(Q4, vpos);
+            //vec3 z = computeRing(Q4, vpos);
+            vec3 z = computeDisc(Q5, vpos);
 
             float mag = length(z);
 
