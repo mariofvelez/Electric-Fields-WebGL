@@ -99,6 +99,7 @@ gl.useProgram(program);
 // uniform locations
 var proj_loc = gl.getUniformLocation(program, "uViewProjection");
 var model_loc = gl.getUniformLocation(program, "uModel");
+var radius_loc = gl.getUniformLocation(program, "radius");
 
 var charge_loc = gl.getUniformLocation(program, "uCharge");
 
@@ -113,44 +114,75 @@ var pos_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos");
 var pos2_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos2");
 var charge_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "charge");
 
-// creating spheres
+// creating shapes
 
 var sphere_subdivisions = 8;
 var sphere_radius = 0.1;
 
-const spheres = [];
+const shapes = [];
 
 // min and max values of the sliders
 var pos_min = -10.0;
 var pos_max = 10.0;
 
+// shape prefabs
+
+// sphere
+var sphere_prefab = createSphere(sphere_subdivisions, sphere_subdivisions, sphere_radius);
+console.log("sphere prefab: " + sphere_prefab);
+
+// creating array buffer
+var sphereVBO = gl.createBuffer();
+
+var sphereVAO = gl.createVertexArray();
+
+gl.bindVertexArray(sphereVAO);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, sphereVBO);
+gl.bufferData(gl.ARRAY_BUFFER, sphere_prefab.vertices, gl.STATIC_DRAW);
+
+// position
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 6 * 4, 0);
+gl.enableVertexAttribArray(0);
+
+// normal
+gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 6 * 4, 3 * 4);
+gl.enableVertexAttribArray(1);
+
+var sphereEBO = gl.createBuffer();
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, sphereEBO);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphere_prefab.indices, gl.STATIC_DRAW);
+
+// line segment
+var line_segment_prefab = createLineSegment();
+console.log(line_segment_prefab);
+
+// ring
+var ring_prefab = createRing();
+console.log("ring prefab: " + ring_prefab);
+
+var ringVBO = gl.createBuffer();
+
+var ringVAO = gl.createVertexArray();
+
+gl.bindVertexArray(ringVAO);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, ringVBO);
+gl.bufferData(gl.ARRAY_BUFFER, ring_prefab.vertices, gl.STATIC_DRAW);
+
+// position
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
+gl.enableVertexAttribArray(0);
+
+var ringEBO = gl.createBuffer();
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ringEBO);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ring_prefab.indices, gl.STATIC_DRAW);
+
 function addSphere(position, radius, charge)
 {
-    // creating array buffer
-    var sphere = createSphere(sphere_subdivisions, sphere_subdivisions, radius);
-
-    console.log(sphere);
-
-    var VBO = gl.createBuffer();
-
-    var VAO = gl.createVertexArray();
-
-    gl.bindVertexArray(VAO);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, VBO);
-    gl.bufferData(gl.ARRAY_BUFFER, sphere.vertices, gl.STATIC_DRAW);
-
-    gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 6 * 4, 0);
-    gl.enableVertexAttribArray(0);
-
-    gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 6 * 4, 3 * 4);
-    gl.enableVertexAttribArray(1);
-
-    var EBO = gl.createBuffer();
-
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, EBO);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphere.indices, gl.STATIC_DRAW);
-
+    // creating HTML controls
     const controls = document.getElementById("controls");
     const div = document.createElement("div");
     controls.appendChild(div);
@@ -165,11 +197,11 @@ function addSphere(position, radius, charge)
     slider_x.max = pos_max;
     slider_x.value = 0;
     slider_x.step = 0.01;
-    slider_x.id = spheres.length * 3;
+    slider_x.id = shapes.length * 3;
     div.appendChild(slider_x);
 
     slider_x.oninput = function () {
-        spheres[slider_x.id / 3].position[0] = slider_x.value;
+        shapes[slider_x.id / 3].position[0] = slider_x.value;
     }
 
     // Y slider
@@ -182,11 +214,11 @@ function addSphere(position, radius, charge)
     slider_y.max = pos_max;
     slider_y.value = 0;
     slider_y.step = 0.01;
-    slider_y.id = spheres.length * 3 + 1;
+    slider_y.id = shapes.length * 3 + 1;
     div.appendChild(slider_y);
 
     slider_y.oninput = function () {
-        spheres[(slider_y.id - 1) / 3].position[1] = slider_y.value;
+        shapes[(slider_y.id - 1) / 3].position[1] = slider_y.value;
     }
 
     // Z slider
@@ -199,11 +231,11 @@ function addSphere(position, radius, charge)
     slider_z.max = pos_max;
     slider_z.value = 0;
     slider_z.step = 0.01;
-    slider_z.id = spheres.length * 3 + 2;
+    slider_z.id = shapes.length * 3 + 2;
     div.appendChild(slider_z);
 
     slider_z.oninput = function () {
-        spheres[(slider_z.id - 2) / 3].position[2] = slider_z.value;
+        shapes[(slider_z.id - 2) / 3].position[2] = slider_z.value;
     }
 
     // Charge slider
@@ -217,19 +249,53 @@ function addSphere(position, radius, charge)
     slider_charge.value = 0;
     slider_charge.step = 0.5;
     slider_charge.id = "charge-slider";
-    slider_charge.name = spheres.length;
+    slider_charge.name = shapes.length;
     div.appendChild(slider_charge);
 
     slider_charge.oninput = function () {
-        spheres[slider_charge.name].charge = slider_charge.value;
+        shapes[slider_charge.name].charge = slider_charge.value;
     }
 
-    spheres.push({
+    shapes.push({
+        name: "sphere",
         position: position,
-        length: sphere.indices.length,
+        length: sphere_prefab.indices.length,
         charge: charge,
-        mVAO: VAO
+        mVAO: sphereVAO
     });
+}
+
+function addLineSegment(position_a, position_b, charge)
+{
+
+}
+
+function addPlane(position, normal, charge)
+{
+
+}
+
+function addRing(position, radius, normal, charge)
+{
+    shapes.push({
+        name: "ring",
+        position: position,
+        radius: radius,
+        normal: normal,
+        length: ring_prefab.indices.length,
+        charge: charge,
+        mVAO: ringVAO
+    });
+}
+
+function addDisc(position, radius, normal, charge)
+{
+
+}
+
+function addWasher(position, inner, outer, normal, charge)
+{
+
 }
 
 var add_charge = document.getElementById("add-charge-button");
@@ -240,9 +306,11 @@ add_charge.addEventListener("click", (e) => {
 
 addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 1.0);
 
-addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius * 2, 1.0);
+addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius, 1.0);
 
-console.log("num spheres " + spheres.length);
+addRing(vec3.fromValues(0.0, 1.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 1.0);
+
+console.log("num shapes " + shapes.length);
 
 var grid_w = 15;
 
@@ -427,27 +495,49 @@ window.addEventListener("resize", (e) => {
 gl.enable(gl.DEPTH_TEST);
 gl.enable(gl.CULL_FACE);
 
+var up = vec3.fromValues(0.134, -0.8251, 0.3117);
+vec3.normalize(up, up);
+
 function draw(time)
 {
     var seconds = time * 0.001;
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // sphere
+    // shapes
     gl.useProgram(program);
 
-    for (var i = 0; i < spheres.length; ++i)
+    gl.uniformMatrix4fv(proj_loc, false, viewProj);
+
+    for (var i = 0; i < shapes.length; ++i)
     {
-        gl.uniformMatrix4fv(proj_loc, false, viewProj);
+        if (shapes[i].name === "sphere")
+        {
+            var model = mat4.create();
+            mat4.scalar.translate(model, model, shapes[i].position);
+            gl.uniformMatrix4fv(model_loc, false, model);
 
-        var model = mat4.create();
-        mat4.scalar.translate(model, model, spheres[i].position);
-        gl.uniformMatrix4fv(model_loc, false, model);
+            gl.uniform1f(charge_loc, shapes[i].charge);
+            gl.uniform1f(radius_loc, 1.0);
 
-        gl.uniform1f(charge_loc, spheres[i].charge);
+            gl.bindVertexArray(shapes[i].mVAO);
+            gl.drawElements(gl.TRIANGLES, shapes[i].length, gl.UNSIGNED_INT, 0);
+        }
+        else if (shapes[i].name === "ring")
+        {
+            var model = mat4.create();
+            var target = vec3.clone(shapes[i].position);
+            vec3.add(target, target, shapes[i].normal);
+            mat4.lookAt(model, shapes[i].position, target, up);
+            mat4.scalar.invert(model, model);
+            gl.uniformMatrix4fv(model_loc, false, model);
 
-        gl.bindVertexArray(spheres[i].mVAO);
-        gl.drawElements(gl.TRIANGLES, spheres[i].length, gl.UNSIGNED_INT, 0);
+            gl.uniform1f(charge_loc, shapes[i].charge);
+            gl.uniform1f(radius_loc, shapes[i].radius);
+
+            gl.bindVertexArray(shapes[i].mVAO);
+            gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
+        }
     }
 
     // grid
@@ -465,9 +555,9 @@ function draw(time)
     gl.useProgram(arrow_compute_program);
 
     gl.uniformMatrix4fv(grid_loc_arrow_compute, false, grid.grid_matrix);
-    gl.uniform3f(pos_loc_arrow_compute, spheres[0].position[0], spheres[0].position[1], spheres[0].position[2]);
-    gl.uniform3f(pos2_loc_arrow_compute, spheres[1].position[0], spheres[1].position[1], spheres[1].position[2]);
-    gl.uniform1f(charge_loc_arrow_compute, spheres[0].charge);
+    gl.uniform3f(pos_loc_arrow_compute, shapes[0].position[0], shapes[0].position[1], shapes[0].position[2]);
+    gl.uniform3f(pos2_loc_arrow_compute, shapes[1].position[0], shapes[1].position[1], shapes[1].position[2]);
+    gl.uniform1f(charge_loc_arrow_compute, shapes[0].charge);
 
     gl.bindVertexArray(acVAO);
 

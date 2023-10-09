@@ -16,10 +16,11 @@
 
         uniform mat4 uViewProjection;
         uniform mat4 uModel;
+        uniform float radius;
 
         void main()
         {
-            vec4 pos = vec4(position, 1.0);
+            vec4 pos = vec4(position * radius, 1.0);
             vPos = (uModel * pos).xyz;
             vNormal = (uModel * vec4(normal, 0.0)).xyz;
             gl_Position = uViewProjection * uModel * pos;
@@ -35,6 +36,9 @@
 
         uniform float uCharge;
 
+        vec3 high_charge = vec3(0.333, 1.0, 0.1294);
+        vec3 low_charge = vec3(1.0, 0.541, 0.290);
+
         void main()
         {
             vec3 light_dir = normalize(vec3(5, 5, 5) - vPos);
@@ -43,10 +47,7 @@
 
             light += 0.5;
 
-            vec3 warm = vec3(1.0, 0.447, 0.23);
-            vec3 cool = vec3(0.184, 0.0588, 0.569);
-
-            fragColor = vec4((mix(cool, warm, (uCharge / 20.0) + 0.5) * light), 1.0);
+            fragColor = vec4((mix(low_charge, high_charge, (uCharge / 20.0) + 0.5) * light), 1.0);
         }
     </script>
     <script id="GridVertex-shader" type="vertex">
@@ -71,7 +72,7 @@
 
         void main()
         {
-            fragColor = vec4(0.702, 0.98, 0.106, 1.0);
+            fragColor = vec4(0.2, 0.2, 0.2, 1.0);
         }
     </script>
     <script id="ArrowVertex-shader" type="vertex">

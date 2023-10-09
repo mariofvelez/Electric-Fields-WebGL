@@ -263,3 +263,56 @@ function createArrow() {
         indices: indices
     }
 }
+
+function createLineSegment()
+{
+    var vertex_size = 6;
+    var index_size = 2;
+
+    var vertices = new Float32Array(vertex_size);
+    var indices = new Uint32Array(index_size);
+
+    vertices[0] = 0.0;
+    vertices[1] = 0.0;
+    vertices[2] = 0.0;
+    vertices[3] = 0.0;
+    vertices[4] = 1.0;
+    vertices[5] = 0.0;
+
+    indices[0] = 0;
+    indices[1] = 1;
+
+    return {
+        vertices: vertices,
+        indices: indices
+    }
+}
+
+function createRing()
+{
+    var subdivisions = 32;
+
+    var vertex_size = 3 * subdivisions;
+    var index_size = 2 * subdivisions;
+
+    var vertices = new Float32Array(vertex_size);
+    var indices = new Uint32Array(index_size);
+
+    for (var i = 0; i < subdivisions; ++i)
+    {
+        var theta = 2.0 * Math.PI * (i / subdivisions);
+        vertices[i * 3 + 0] = Math.cos(theta);
+        vertices[i * 3 + 1] = Math.sin(theta);
+        vertices[i * 3 + 2] = 0.0;
+
+        indices[i * 2 + 0] = i;
+        indices[i * 2 + 1] = i + 1;
+        if (i === subdivisions - 1)
+            indices[i * 2 + 1] = 0;
+    }
+
+    return {
+        vertices: vertices,
+        indices: indices
+    }
+}
