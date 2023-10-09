@@ -267,8 +267,8 @@
 
         vec3 computeWasher(Washer washer, vec3 pos)
         {
-            float subdivisions_r = 10.0;
-            float subdivisions_theta = 10.0;
+            float subdivisions_r = 50.0;
+            float subdivisions_theta = 150.0;
             float dtheta = 1.0 / subdivisions_theta;
             float dr = 1.0 / subdivisions_r;
 
@@ -392,6 +392,7 @@
         <canvas id="c"></canvas>
     </div>
     <script src="gl-matrix.js"></script>
+    <script src="shapes.js"></script>
     <script src="application.js"></script>
 </body>
 </html>
