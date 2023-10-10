@@ -276,8 +276,8 @@ function createLineSegment()
     vertices[1] = 0.0;
     vertices[2] = 0.0;
     vertices[3] = 0.0;
-    vertices[4] = 1.0;
-    vertices[5] = 0.0;
+    vertices[4] = 0.0;
+    vertices[5] = 1.0;
 
     indices[0] = 0;
     indices[1] = 1;
@@ -309,6 +309,37 @@ function createRing()
         indices[i * 2 + 1] = i + 1;
         if (i === subdivisions - 1)
             indices[i * 2 + 1] = 0;
+    }
+
+    return {
+        vertices: vertices,
+        indices: indices
+    }
+}
+
+function createDisc()
+{
+    var subdivisions = 32;
+
+    var vertex_size = 3 * subdivisions;
+    var index_size = 3 * (subdivisions - 2);
+
+    var vertices = new Float32Array(vertex_size);
+    var indices = new Uint32Array(index_size);
+
+    for (var i = 0; i < subdivisions; ++i)
+    {
+        var theta = 2.0 * Math.PI * (i / subdivisions);
+        vertices[i * 3 + 0] = Math.cos(theta);
+        vertices[i * 3 + 1] = Math.sin(theta);
+        vertices[i * 3 + 2] = 0.0;
+
+        if (i < subdivisions - 2)
+        {
+            indices[i * 3 + 0] = 0;
+            indices[i * 3 + 1] = i + 1;
+            indices[i * 3 + 2] = i + 2;
+        }
     }
 
     return {

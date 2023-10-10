@@ -158,6 +158,24 @@ gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphere_prefab.indices, gl.STATIC_DRAW);
 var line_segment_prefab = createLineSegment();
 console.log(line_segment_prefab);
 
+var line_segmentVBO = gl.createBuffer();
+
+var line_segmentVAO = gl.createVertexArray();
+
+gl.bindVertexArray(line_segmentVAO);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, line_segmentVBO);
+gl.bufferData(gl.ARRAY_BUFFER, line_segment_prefab.vertices, gl.STATIC_DRAW);
+
+// position
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
+gl.enableVertexAttribArray(0);
+
+var line_segmentEBO = gl.createBuffer();
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, line_segmentEBO);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, line_segment_prefab.indices, gl.STATIC_DRAW);
+
 // ring
 var ring_prefab = createRing();
 console.log("ring prefab: " + ring_prefab);
@@ -179,6 +197,9 @@ var ringEBO = gl.createBuffer();
 
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ringEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ring_prefab.indices, gl.STATIC_DRAW);
+
+// disc
+
 
 function addSphere(position, radius, charge)
 {
@@ -267,7 +288,14 @@ function addSphere(position, radius, charge)
 
 function addLineSegment(position_a, position_b, charge)
 {
-
+    shapes.push({
+        name: "line segment",
+        position_a: position_a,
+        position_b: position_b,
+        charge: charge,
+        length: 2,
+        mVAO: line_segmentVAO
+    });
 }
 
 function addPlane(position, normal, charge)
@@ -304,11 +332,13 @@ add_charge.addEventListener("click", (e) => {
     addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 1.0);
 }, false);
 
-addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 1.0);
+addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 0.0);
 
-addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius, 1.0);
+addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius, 0.0);
 
-addRing(vec3.fromValues(0.0, 1.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 1.0);
+//addRing(vec3.fromValues(0.0, 1.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 10.0);
+
+//addLineSegment(vec3.fromValues(3.0, 3.0, 3.0), vec3.fromValues(-3.0, -3.0, -3.0), 1.0);
 
 console.log("num shapes " + shapes.length);
 
@@ -534,6 +564,29 @@ function draw(time)
 
             gl.uniform1f(charge_loc, shapes[i].charge);
             gl.uniform1f(radius_loc, shapes[i].radius);
+
+            gl.bindVertexArray(shapes[i].mVAO);
+            gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
+        }
+        else if (shapes[i].name === "line segment")
+        {
+            console.log("drawing line segment");
+            var model = mat4.create();
+            gl.uniformMatrix4fv(model_loc, false, model);
+
+            // set line segment buffer positions
+            line_segment_prefab.vertices[0] = shapes[i].position_a[0];
+            line_segment_prefab.vertices[1] = shapes[i].position_a[1];
+            line_segment_prefab.vertices[2] = shapes[i].position_a[2];
+            line_segment_prefab.vertices[3] = shapes[i].position_b[0];
+            line_segment_prefab.vertices[4] = shapes[i].position_b[1];
+            line_segment_prefab.vertices[5] = shapes[i].position_b[2];
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, line_segmentVBO);
+            gl.bufferData(gl.ARRAY_BUFFER, line_segment_prefab.vertices, gl.STATIC_DRAW);
+
+            gl.uniform1f(charge_loc, shapes[i].charge);
+            gl.uniform1f(radius_loc, 1.0);
 
             gl.bindVertexArray(shapes[i].mVAO);
             gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
