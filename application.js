@@ -114,6 +114,78 @@ var pos_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos");
 var pos2_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos2");
 var charge_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "charge");
 
+var lg_nodes_loc = gl.getUniformLocation(arrow_compute_program, "lg_nodes");
+var lg_weights_loc = gl.getUniformLocation(arrow_compute_program, "lg_weights");
+var gk_nodes_loc = gl.getUniformLocation(arrow_compute_program, "gk_nodes");
+var gk_weights_loc = gl.getUniformLocation(arrow_compute_program, "gk_weights");
+
+var inverse_loc = gl.getUniformLocation(arrow_compute_program, "inverse");
+var transform_loc = gl.getUniformLocation(arrow_compute_program, "model");
+
+// Weights and Abscissae for Gauss-Kronrod integration
+var lg_nodes = new Float32Array([
+    0.0,
+    0.4058451513773971669066064120769615,
+    -0.4058451513773971669066064120769615,
+    0.7415311855993944398638647732807884,
+    -0.7415311855993944398638647732807884,
+    0.9491079123427585245261896840478513,
+    -0.9491079123427585245261896840478513
+]);
+var lg_weights = new Float32Array([
+    4.179591836734693877551020408163265e-01,
+    3.818300505051189449503697754889751e-01,
+    3.818300505051189449503697754889751e-01,
+    2.797053914892766679014677714237796e-01,
+    2.797053914892766679014677714237796e-01,
+    1.294849661688696932706114326790820e-01,
+    1.294849661688696932706114326790820e-01
+]);
+var gk_nodes = new Float32Array([
+    0.0,
+    2.077849550078984676006894037732449e-01,
+    -2.077849550078984676006894037732449e-01,
+    4.058451513773971669066064120769615e-01,
+    -4.058451513773971669066064120769615e-01,
+    5.860872354676911302941448382587296e-01,
+    -5.860872354676911302941448382587296e-01,
+    7.415311855993944398638647732807884e-01,
+    -7.415311855993944398638647732807884e-01,
+    8.648644233597690727897127886409262e-01,
+    -8.648644233597690727897127886409262e-01,
+    9.491079123427585245261896840478513e-01,
+    -9.491079123427585245261896840478513e-01,
+    9.914553711208126392068546975263285e-01,
+    -9.914553711208126392068546975263285e-01
+]);
+var gk_weights = new Float32Array([
+    2.094821410847278280129991748917143e-01,
+    2.044329400752988924141619992346491e-01,
+    2.044329400752988924141619992346491e-01,
+    1.903505780647854099132564024210137e-01,
+    1.903505780647854099132564024210137e-01,
+    1.690047266392679028265834265985503e-01,
+    1.690047266392679028265834265985503e-01,
+    1.406532597155259187451895905102379e-01,
+    1.406532597155259187451895905102379e-01,
+    1.047900103222501838398763225415180e-01,
+    1.047900103222501838398763225415180e-01,
+    6.309209262997855329070066318920429e-02,
+    6.309209262997855329070066318920429e-02,
+    2.293532201052922496373200805896959e-02,
+    2.293532201052922496373200805896959e-02
+]);
+
+console.log(gk_weights);
+
+gl.useProgram(arrow_compute_program);
+
+gl.uniform1fv(lg_nodes_loc,   lg_nodes);
+gl.uniform1fv(lg_weights_loc, lg_weights);
+
+gl.uniform1fv(gk_nodes_loc,   gk_nodes);
+gl.uniform1fv(gk_weights_loc, gk_weights);
+
 // creating shapes
 
 var sphere_subdivisions = 8;
@@ -336,7 +408,7 @@ addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 0.0);
 
 addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius, 0.0);
 
-//addRing(vec3.fromValues(0.0, 1.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 10.0);
+addRing(vec3.fromValues(0.0, 1.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 10.0);
 
 //addLineSegment(vec3.fromValues(3.0, 3.0, 3.0), vec3.fromValues(-3.0, -3.0, -3.0), 1.0);
 
@@ -555,15 +627,28 @@ function draw(time)
         }
         else if (shapes[i].name === "ring")
         {
+            // temporary testing
             var model = mat4.create();
-            var target = vec3.clone(shapes[i].position);
+            var target = vec3.clone(shapes[1].position);
+            vec3.subtract(target, target, shapes[0].position);
+            mat4.lookAt(model, shapes[0].position, target, up);
+
+            // setting transform for computing electric field
+            gl.useProgram(arrow_compute_program);
+            gl.uniformMatrix4fv(inverse_loc, false, model);
+            mat4.scalar.invert(model, model);
+            gl.uniformMatrix4fv(transform_loc, false, model);
+            gl.useProgram(program);
+
+            /*var target = vec3.clone(shapes[i].position);
             vec3.add(target, target, shapes[i].normal);
             mat4.lookAt(model, shapes[i].position, target, up);
-            mat4.scalar.invert(model, model);
+            mat4.scalar.invert(model, model);*/
             gl.uniformMatrix4fv(model_loc, false, model);
 
             gl.uniform1f(charge_loc, shapes[i].charge);
-            gl.uniform1f(radius_loc, shapes[i].radius);
+            gl.uniform1f(radius_loc, vec3.distance(shapes[0].position, shapes[1].position));
+            //gl.uniform1f(radius_loc, shapes[i].radius);
 
             gl.bindVertexArray(shapes[i].mVAO);
             gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
