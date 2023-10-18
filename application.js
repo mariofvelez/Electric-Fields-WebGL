@@ -575,10 +575,10 @@ addRing(vec3.fromValues(0.0, 1.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 10.
 
 console.log("num shapes " + shapes.length);
 
-var grid_w = 30;
+var grid_w = 15;
 
 // creating grid
-var grid = createGrid(vec3.fromValues(0.0, 1.0, 0.0), 0.25, grid_w);
+var grid = createGrid(vec3.fromValues(0.0, 1.0, 0.0), 0.5, grid_w);
 
 console.log("grid:" + grid);
 
