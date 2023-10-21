@@ -115,8 +115,6 @@
         out mat4 transform; // output transform
 
         uniform mat4 grid_matrix;
-        uniform mat4 model;
-        uniform mat4 inverse;
 
         uniform float[25] lg_nodes;
         uniform float[25] lg_weights;
@@ -128,11 +126,6 @@
 
         float min_color = 0.01;
         float max_color = 1.0;
-
-        // shapes go here
-        uniform vec3 pos; // testing shapes
-        uniform vec3 pos2;
-        uniform float charge;
 
         struct Point {
             vec3 pos;
@@ -153,20 +146,28 @@
             vec3 pos;
             float radius;
             float q;
+            mat4 model;
+            mat4 inverse;
         };
         struct Disc {
             vec3 normal;
             vec3 pos;
             float radius;
-            float sigma;
+            float q;
+            mat4 model;
+            mat4 inverse;
         };
         struct Washer {
             vec3 normal;
             vec3 pos;
             float inner;
             float outer;
-            float sigma;
+            float q;
+            mat4 model;
+            mat4 inverse;
         };
+
+        [shapes]
 
         float map(float value, float min1, float max1, float min2, float max2) {
             return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
@@ -212,7 +213,7 @@
 
         vec3 computeGKRing(Ring ring, vec3 pos)
         {
-             vec3 P = (inverse * vec4(pos, 1.0)).xyz; // from world to disc coordinates
+             vec3 P = (ring.inverse * vec4(pos, 1.0)).xyz; // from world to disc coordinates
 
             vec3 Exyz = vec3(0.0, 0.0, 0.0);
 
@@ -241,18 +242,20 @@
                 Exyz.z += wTheta * P.z / lenA32;
             }
             Exyz *= K;
-            Exyz = (model * vec4(Exyz, 0.0)).xyz; // from disc to world vector
+            Exyz = (ring.model * vec4(Exyz, 0.0)).xyz; // from disc to world vector
             return Exyz;
         }
 
         vec3 computeGKDisc(Disc disc, vec3 pos)
         {
-            vec3 P = (inverse * vec4(pos, 1.0)).xyz; // from world to disc coordinates
+            vec3 P = (disc.inverse * vec4(pos, 1.0)).xyz; // from world to disc coordinates
 
             vec3 Exyz = vec3(0.0, 0.0, 0.0);
+            
+            float sigma = disc.q / (pi * disc.radius * disc.radius);
 
             float K = 1.0 / (4.0 * pi * E0);
-            K *= disc.sigma;
+            K *= sigma;
 
             for(int i = 0; i < gk_nodes.length(); ++i) // r
             {
@@ -284,18 +287,18 @@
                 }
             }
             Exyz *= K;
-            Exyz = (model * vec4(Exyz, 0.0)).xyz; // from disc to world vector
+            Exyz = (disc.model * vec4(Exyz, 0.0)).xyz; // from disc to world vector
             return Exyz;
         }
 
         vec3 computeGKWasher(Washer washer, vec3 pos)
         {
-            vec3 P = (inverse * vec4(pos, 1.0)).xyz; // from world to disc coordinates
+            vec3 P = (washer.inverse * vec4(pos, 1.0)).xyz; // from world to disc coordinates
 
             vec3 Exyz = vec3(0.0, 0.0, 0.0);
 
-            float K = 1.0 / (4.0 * pi * E0);
-            K *= washer.sigma;
+            float K = washer.q / (4.0 * pi * pi * washer.outer * washer.outer * E0);
+            K -= washer.q / (4.0 * pi * pi * washer.inner * washer.inner * E0);
 
             for(int i = 0; i < gk_nodes.length(); ++i) // r
             {
@@ -327,61 +330,15 @@
                 }
             }
             Exyz *= K;
-            Exyz = (model * vec4(Exyz, 0.0)).xyz; // from disc to world vector
+            Exyz = (washer.model * vec4(Exyz, 0.0)).xyz; // from disc to world vector
             return Exyz;
         }
 
         void main()
         {
-            // calculate electric field vector at vpos
-            // point charge
-            /*Point Q1;
-            Q1.pos = pos;
-            Q1.q = charge;*/
+            vec3 z;
 
-            // line segment charge
-            /*LineSegment Q2;
-            Q2.a = pos;
-            Q2.b = pos2;
-            Q2.q = charge * 4.0;*/
-
-            // infinite plane charge
-            /*Plane Q3;
-            Q3.normal = normalize(pos2 - pos);
-            Q3.pos = pos;
-            Q3.sigma = charge * 0.2*/;
-
-            // ring charge
-            /*Ring Q4;
-            vec3 dir = pos2 - pos;
-            Q4.normal = normalize(dir);
-            Q4.pos = pos;
-            Q4.radius = length(dir);
-            Q4.q = charge * 4.0;*/
-
-            // disc charge
-            /*Disc Q5;
-            vec3 dir = pos2 - pos;
-            Q5.normal = normalize(dir);
-            Q5.pos = pos;
-            Q5.radius = length(dir);
-            Q5.sigma = charge / 2.0;*/
-
-            // washer charge
-            Washer Q6;
-            vec3 dir = pos2 - pos;
-            Q6.normal = normalize(dir);
-            Q6.pos = pos;
-            Q6.outer = length(dir);
-            Q6.inner = Q6.outer / 2.0;
-            Q6.sigma = charge;
-
-            //vec3 z = computePoint(Q1, vpos);
-            //vec3 z = computeLineSegment(Q2, vpos);
-            //vec3 z = computePlane(Q3, vpos);
-            //vec3 z = computeGKRing(Q4, vpos);
-            //vec3 z = computeGKDisc(Q5, vpos);
-            vec3 z = computeGKWasher(Q6, vpos);
+            [calculate]
 
             float mag = length(z);
 

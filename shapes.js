@@ -80,9 +80,6 @@ function createGrid(norm, scale, width) {
     vec3.cross(y_dir, normal, x_dir);
     vec3.normalize(y_dir, y_dir);
 
-    console.log("x: " + x_dir);
-    console.log("y: " + y_dir);
-
     var dist = (width * scale) / 2.0;
 
     var grid_matrix = mat3.fromValues(x_dir[0], x_dir[1], x_dir[2],
@@ -321,7 +318,7 @@ function createDisc()
 {
     var subdivisions = 32;
 
-    var vertex_size = 3 * subdivisions;
+    var vertex_size = 6 * subdivisions;
     var index_size = 3 * (subdivisions - 2);
 
     var vertices = new Float32Array(vertex_size);
@@ -329,10 +326,13 @@ function createDisc()
 
     for (var i = 0; i < subdivisions; ++i)
     {
-        var theta = 2.0 * Math.PI * (i / subdivisions);
-        vertices[i * 3 + 0] = Math.cos(theta);
-        vertices[i * 3 + 1] = Math.sin(theta);
-        vertices[i * 3 + 2] = 0.0;
+        var theta = 2.0 * Math.PI * i / subdivisions;
+        vertices[i * 6 + 0] = Math.cos(theta);
+        vertices[i * 6 + 1] = Math.sin(theta);
+        vertices[i * 6 + 2] = 0.0;
+        vertices[i * 6 + 3] = 0.0;
+        vertices[i * 6 + 4] = 0.0;
+        vertices[i * 6 + 5] = 1.0;
 
         if (i < subdivisions - 2)
         {

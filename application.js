@@ -12,115 +12,10 @@ gl.clearColor(0.1, 0.1, 0.1, 1.0);
 
 gl.viewport(0, 0, canvas.width, canvas.height);
 
-
-// create shader programs
-function createProgram(vertex_source, fragment_source)
-{
-    var vertexShaderSource = document.querySelector(vertex_source).text.trim();
-    var fragmentShaderSource = document.querySelector(fragment_source).text.trim();
-
-    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, vertexShaderSource);
-    gl.compileShader(vertexShader);
-
-    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(vertexShader));
-    }
-
-    // fragment shader
-    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, fragmentShaderSource);
-    gl.compileShader(fragmentShader);
-
-    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(fragmentShader));
-    }
-
-    // shader program
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(program));
-    }
-
-    return program;
-}
-
-function createComputeProgram(vertex_source, fragment_source) {
-    var vertexShaderSource = document.querySelector(vertex_source).text.trim();
-    var fragmentShaderSource = document.querySelector(fragment_source).text.trim();
-
-    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, vertexShaderSource);
-    gl.compileShader(vertexShader);
-
-    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(vertexShader));
-    }
-
-    // fragment shader
-    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, fragmentShaderSource);
-    gl.compileShader(fragmentShader);
-
-    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(fragmentShader));
-    }
-
-    // shader program
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-
-    gl.transformFeedbackVaryings(program, ['color', 'transform'], gl.INTERLEAVED_ATTRIBS);
-
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(program));
-    }
-
-    return program;
-}
-
-var program = createProgram("#Vertex-shader", "#Fragment-shader");
-
-var grid_program = createProgram("#GridVertex-shader", "#GridFragment-shader");
-
-var arrow_program = createProgram("#ArrowVertex-shader", "#ArrowFragment-shader");
-
-var arrow_compute_program = createComputeProgram("#ArrowComputeVertex-shader", "#ArrowComputeFragment-shader");
-
-gl.useProgram(program);
-
-// uniform locations
-var proj_loc = gl.getUniformLocation(program, "uViewProjection");
-var model_loc = gl.getUniformLocation(program, "uModel");
-var radius_loc = gl.getUniformLocation(program, "radius");
-
-var charge_loc = gl.getUniformLocation(program, "uCharge");
-
-var proj_loc_grid = gl.getUniformLocation(grid_program, "uViewProjection");
-var model_loc_grid = gl.getUniformLocation(grid_program, "uModel");
-
-var proj_loc_arrow = gl.getUniformLocation(arrow_program, "uViewProjection");
-var model_loc_arrow = gl.getUniformLocation(arrow_program, "uModel");
-
-var grid_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "grid_matrix");
-var pos_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos");
-var pos2_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "pos2");
-var charge_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "charge");
-
-var lg_nodes_loc = gl.getUniformLocation(arrow_compute_program, "lg_nodes");
-var lg_weights_loc = gl.getUniformLocation(arrow_compute_program, "lg_weights");
-var gk_nodes_loc = gl.getUniformLocation(arrow_compute_program, "gk_nodes");
-var gk_weights_loc = gl.getUniformLocation(arrow_compute_program, "gk_weights");
-
-var inverse_loc = gl.getUniformLocation(arrow_compute_program, "inverse");
-var transform_loc = gl.getUniformLocation(arrow_compute_program, "model");
+var lg_nodes_loc;
+var lg_weights_loc;
+var gk_nodes_loc;
+var gk_weights_loc;
 
 // Weights and Abscissae for Gauss-Kronrod integration
 /*var lg_nodes = new Float32Array([
@@ -337,15 +232,247 @@ var gk_weights = new Float32Array([
     1.987383892330315926507851882843410e-03
 ]);
 
-console.log(gk_weights);
 
-gl.useProgram(arrow_compute_program);
+// create shader programs
+function createProgram(vertex_source, fragment_source)
+{
+    var vertexShaderSource = document.querySelector(vertex_source).text.trim();
+    var fragmentShaderSource = document.querySelector(fragment_source).text.trim();
 
-gl.uniform1fv(lg_nodes_loc,   lg_nodes);
-gl.uniform1fv(lg_weights_loc, lg_weights);
+    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexShaderSource);
+    gl.compileShader(vertexShader);
 
-gl.uniform1fv(gk_nodes_loc,   gk_nodes);
-gl.uniform1fv(gk_weights_loc, gk_weights);
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(vertexShader));
+    }
+
+    // fragment shader
+    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.compileShader(fragmentShader);
+
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(fragmentShader));
+    }
+
+    // shader program
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error(gl.getProgramInfoLog(program));
+    }
+
+    return program;
+}
+
+function createComputeProgram(vertex_source, fragment_source)
+{
+    var vertexShaderSource = document.querySelector(vertex_source).text.trim();
+    var fragmentShaderSource = document.querySelector(fragment_source).text.trim();
+
+    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexShaderSource);
+    gl.compileShader(vertexShader);
+
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(vertexShader));
+    }
+
+    // fragment shader
+    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.compileShader(fragmentShader);
+
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+        console.error(gl.getShaderInfoLog(fragmentShader));
+    }
+
+    // shader program
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+
+    gl.transformFeedbackVaryings(program, ['color', 'transform'], gl.INTERLEAVED_ATTRIBS);
+
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.error(gl.getProgramInfoLog(program));
+    }
+
+    return program;
+}
+
+function compileArrowCompute(vertex_source, fragment_source, shapes)
+{
+    var vertexShaderSource = document.querySelector(vertex_source).text.trim();
+    var fragmentShaderSource = document.querySelector(fragment_source).text.trim();
+
+    var shapes_text = "";
+    var calculate_text = "";
+    for (var i = 0; i < shapes.length; ++i)
+    {
+        switch (shapes[i].name)
+        {
+            case "sphere":
+                shapes_text += "uniform Point Q" + i + ";\n";
+                calculate_text += "z += computePoint(Q" + i + ", vpos);\n";
+                break;
+            case "line segment":
+                shapes_text += "uniform LineSegment Q" + i + ";\n";
+                calculate_text += "z += computeLineSegment(Q" + i + ", vpos);\n";
+                break;
+            case "plane":
+                shapes_text += "uniform Plane Q" + i + ";\n";
+                calculate_text += "z += computePlane(Q" + i + ", vpos);\n";
+                break;
+            case "ring":
+                shapes_text += "uniform Ring Q" + i + ";\n";
+                calculate_text += "z += computeGKRing(Q" + i + ", vpos);\n";
+                break;
+            case "disc":
+                shapes_text += "uniform Disc Q" + i + ";\n";
+                calculate_text += "z += computeGKDisc(Q" + i + ", vpos);\n";
+                break;
+            case "washer":
+                shapes_text += "uniform Washer Q" + i + ";\n";
+                calculate_text += "z += computeGKWasher(Q" + i + ", vpos);\n";
+        }
+    }
+
+    vertexShaderSource = vertexShaderSource.replace("[shapes]", shapes_text);
+    vertexShaderSource = vertexShaderSource.replace("[calculate]", calculate_text);
+
+    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(vertexShader, vertexShaderSource);
+    gl.compileShader(vertexShader);
+
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS))
+    {
+        console.error(gl.getShaderInfoLog(vertexShader));
+    }
+
+    // fragment shader
+    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.compileShader(fragmentShader);
+
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS))
+    {
+        console.error(gl.getShaderInfoLog(fragmentShader));
+    }
+
+    // shader program
+    var program = gl.createProgram();
+    gl.attachShader(program, vertexShader);
+    gl.attachShader(program, fragmentShader);
+
+    gl.transformFeedbackVaryings(program, ['color', 'transform'], gl.INTERLEAVED_ATTRIBS);
+
+    gl.linkProgram(program);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS))
+    {
+        console.error(gl.getProgramInfoLog(program));
+    }
+
+    // setting uniform locations
+    for (var i = 0; i < shapes.length; ++i)
+    {
+        switch (shapes[i].name)
+        {
+            case "sphere":
+                shapes[i].pos_loc = gl.getUniformLocation(program, "Q" + i + ".pos");
+                shapes[i].charge_loc = gl.getUniformLocation(program, "Q" + i + ".q");
+                break;
+            case "line segment":
+                shapes[i].a_loc = gl.getUniformLocation(program, "Q" + i + ".a");
+                shapes[i].b_loc = gl.getUniformLocation(program, "Q" + i + ".b");
+                shapes[i].charge_loc = gl.getUniformLocation(program, "Q" + i + ".q");
+                break;
+            case "plane":
+                shapes[i].normal_loc = gl.getUniformLocation(program, "Q" + i + ".normal");
+                shapes[i].pos_loc = gl.getUniformLocation(program, "Q" + i + ".pos");
+                shapes[i].sigma_loc = gl.getUniformLocation(program, "Q" + i + ".sigma");
+                break;
+            case "ring":
+            case "disc":
+                shapes[i].normal_loc = gl.getUniformLocation(program, "Q" + i + ".normal");
+                shapes[i].pos_loc = gl.getUniformLocation(program, "Q" + i + ".pos");
+                shapes[i].radius_loc = gl.getUniformLocation(program, "Q" + i + ".radius");
+                shapes[i].charge_loc = gl.getUniformLocation(program, "Q" + i + ".q");
+                shapes[i].model_loc = gl.getUniformLocation(program, "Q" + i + ".model");
+                shapes[i].inverse_loc = gl.getUniformLocation(program, "Q" + i + ".inverse");
+                break;
+            case "washer":
+                shapes[i].normal_loc = gl.getUniformLocation(program, "Q" + i + ".normal");
+                shapes[i].pos_loc = gl.getUniformLocation(program, "Q" + i + ".pos");
+                shapes[i].inner_loc = gl.getUniformLocation(program, "Q" + i + ".inner");
+                shapes[i].outer_loc = gl.getUniformLocation(program, "Q" + i + ".outer");
+                shapes[i].charge_loc = gl.getUniformLocation(program, "Q" + i + ".q");
+                shapes[i].model_loc = gl.getUniformLocation(program, "Q" + i + ".model");
+                shapes[i].inverse_loc = gl.getUniformLocation(program, "Q" + i + ".inverse");
+        }
+    }
+
+    return program;
+
+}
+
+var program = createProgram("#Vertex-shader", "#Fragment-shader");
+
+var grid_program = createProgram("#GridVertex-shader", "#GridFragment-shader");
+
+var arrow_program = createProgram("#ArrowVertex-shader", "#ArrowFragment-shader");
+
+var arrow_compute_program;
+var arrow_compute_vertex_source = "#ArrowComputeVertex-shader";
+var arrow_compute_fragment_source = "#ArrowComputeFragment-shader";
+
+function updateComputeProgram()
+{
+    gl.deleteProgram(arrow_compute_program);
+    arrow_compute_program = compileArrowCompute(arrow_compute_vertex_source, arrow_compute_fragment_source, shapes);
+
+    // gauss quadrature uniforms
+    var lg_nodes_loc = gl.getUniformLocation(arrow_compute_program, "lg_nodes");
+    var lg_weights_loc = gl.getUniformLocation(arrow_compute_program, "lg_weights");
+
+    var gk_nodes_loc = gl.getUniformLocation(arrow_compute_program, "gk_nodes");
+    var gk_weights_loc = gl.getUniformLocation(arrow_compute_program, "gk_weights");
+
+    gl.useProgram(arrow_compute_program);
+
+    gl.uniform1fv(lg_nodes_loc, lg_nodes);
+    gl.uniform1fv(lg_weights_loc, lg_weights);
+
+    gl.uniform1fv(gk_nodes_loc, gk_nodes);
+    gl.uniform1fv(gk_weights_loc, gk_weights);
+
+    // grid uniform
+    grid_loc_arrow_compute = gl.getUniformLocation(arrow_compute_program, "grid_matrix");
+}
+
+gl.useProgram(program);
+
+// uniform locations
+var proj_loc = gl.getUniformLocation(program, "uViewProjection");
+var model_loc = gl.getUniformLocation(program, "uModel");
+var radius_loc = gl.getUniformLocation(program, "radius");
+
+var charge_loc = gl.getUniformLocation(program, "uCharge");
+
+var proj_loc_grid = gl.getUniformLocation(grid_program, "uViewProjection");
+var model_loc_grid = gl.getUniformLocation(grid_program, "uModel");
+
+var proj_loc_arrow = gl.getUniformLocation(arrow_program, "uViewProjection");
+var model_loc_arrow = gl.getUniformLocation(arrow_program, "uModel");
+
+var grid_loc_arrow_compute;
 
 // creating shapes
 
@@ -353,6 +480,8 @@ var sphere_subdivisions = 8;
 var sphere_radius = 0.1;
 
 const shapes = [];
+
+arrow_compute_program = compileArrowCompute(arrow_compute_vertex_source, arrow_compute_fragment_source, shapes);
 
 // min and max values of the sliders
 var pos_min = -10.0;
@@ -432,6 +561,30 @@ gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ringEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, ring_prefab.indices, gl.STATIC_DRAW);
 
 // disc
+var disc_prefab = createDisc();
+console.log(disc_prefab);
+
+var discVBO = gl.createBuffer();
+
+var discVAO = gl.createVertexArray();
+
+gl.bindVertexArray(discVAO);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, discVBO);
+gl.bufferData(gl.ARRAY_BUFFER, disc_prefab.vertices, gl.STATIC_DRAW);
+
+// position
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 6 * 4, 0);
+gl.enableVertexAttribArray(0);
+
+// normal
+gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 6 * 4, 3 * 4);
+gl.enableVertexAttribArray(1);
+
+var discEBO = gl.createBuffer();
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, discEBO);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, disc_prefab.indices, gl.STATIC_DRAW);
 
 
 function addSphere(position, radius, charge)
@@ -517,6 +670,8 @@ function addSphere(position, radius, charge)
         charge: charge,
         mVAO: sphereVAO
     });
+
+    updateComputeProgram();
 }
 
 function addLineSegment(position_a, position_b, charge)
@@ -529,11 +684,13 @@ function addLineSegment(position_a, position_b, charge)
         length: 2,
         mVAO: line_segmentVAO
     });
+
+    updateComputeProgram();
 }
 
 function addPlane(position, normal, charge)
 {
-
+    updateComputeProgram();
 }
 
 function addRing(position, radius, normal, charge)
@@ -547,16 +704,28 @@ function addRing(position, radius, normal, charge)
         charge: charge,
         mVAO: ringVAO
     });
+
+    updateComputeProgram();
 }
 
 function addDisc(position, radius, normal, charge)
 {
+    shapes.push({
+        name: "disc",
+        position: position,
+        radius: radius,
+        normal: normal,
+        length: disc_prefab.indices.length,
+        charge: charge,
+        mVAO: discVAO
+    });
 
+    updateComputeProgram();
 }
 
 function addWasher(position, inner, outer, normal, charge)
 {
-
+    updateComputeProgram();
 }
 
 var add_charge = document.getElementById("add-charge-button");
@@ -565,15 +734,13 @@ add_charge.addEventListener("click", (e) => {
     addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 1.0);
 }, false);
 
-addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 0.0);
+//addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 5.0);
 
-addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius, 0.0);
+//addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius, -5.0);
 
-addRing(vec3.fromValues(0.0, 1.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 10.0);
+addDisc(vec3.fromValues(0.0, 0.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 20.0);
 
 //addLineSegment(vec3.fromValues(3.0, 3.0, 3.0), vec3.fromValues(-3.0, -3.0, -3.0), 1.0);
-
-console.log("num shapes " + shapes.length);
 
 var grid_w = 15;
 
@@ -774,68 +941,103 @@ function draw(time)
 
     for (var i = 0; i < shapes.length; ++i)
     {
-        if (shapes[i].name === "sphere")
+        var model = mat4.create();
+        switch (shapes[i].name)
         {
-            var model = mat4.create();
-            mat4.scalar.translate(model, model, shapes[i].position);
-            gl.uniformMatrix4fv(model_loc, false, model);
+            case "sphere":
+                {
+                    mat4.scalar.translate(model, model, shapes[i].position);
+                    gl.uniformMatrix4fv(model_loc, false, model);
 
-            gl.uniform1f(charge_loc, shapes[i].charge);
-            gl.uniform1f(radius_loc, 1.0);
+                    gl.uniform1f(charge_loc, shapes[i].charge);
+                    gl.uniform1f(radius_loc, 1.0);
 
-            gl.bindVertexArray(shapes[i].mVAO);
-            gl.drawElements(gl.TRIANGLES, shapes[i].length, gl.UNSIGNED_INT, 0);
-        }
-        else if (shapes[i].name === "ring")
-        {
-            // temporary testing
-            var model = mat4.create();
-            var target = vec3.clone(shapes[1].position);
-            vec3.subtract(target, target, shapes[0].position);
-            mat4.lookAt(model, shapes[0].position, target, up);
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.TRIANGLES, shapes[i].length, gl.UNSIGNED_INT, 0);
+                }
+                break;
+            case "line segment":
+                {
+                    console.log("drawing line segment");
+                    gl.uniformMatrix4fv(model_loc, false, model);
 
-            // setting transform for computing electric field
-            gl.useProgram(arrow_compute_program);
-            gl.uniformMatrix4fv(inverse_loc, false, model);
-            mat4.scalar.invert(model, model);
-            gl.uniformMatrix4fv(transform_loc, false, model);
-            gl.useProgram(program);
+                    // set line segment buffer positions
+                    line_segment_prefab.vertices[0] = shapes[i].position_a[0];
+                    line_segment_prefab.vertices[1] = shapes[i].position_a[1];
+                    line_segment_prefab.vertices[2] = shapes[i].position_a[2];
+                    line_segment_prefab.vertices[3] = shapes[i].position_b[0];
+                    line_segment_prefab.vertices[4] = shapes[i].position_b[1];
+                    line_segment_prefab.vertices[5] = shapes[i].position_b[2];
 
-            /*var target = vec3.clone(shapes[i].position);
-            vec3.add(target, target, shapes[i].normal);
-            mat4.lookAt(model, shapes[i].position, target, up);
-            mat4.scalar.invert(model, model);*/
-            gl.uniformMatrix4fv(model_loc, false, model);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, line_segmentVBO);
+                    gl.bufferData(gl.ARRAY_BUFFER, line_segment_prefab.vertices, gl.STATIC_DRAW);
 
-            gl.uniform1f(charge_loc, shapes[i].charge);
-            gl.uniform1f(radius_loc, vec3.distance(shapes[0].position, shapes[1].position));
-            //gl.uniform1f(radius_loc, shapes[i].radius);
+                    gl.uniform1f(charge_loc, shapes[i].charge);
+                    gl.uniform1f(radius_loc, 1.0);
 
-            gl.bindVertexArray(shapes[i].mVAO);
-            gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
-        }
-        else if (shapes[i].name === "line segment")
-        {
-            console.log("drawing line segment");
-            var model = mat4.create();
-            gl.uniformMatrix4fv(model_loc, false, model);
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
+                }
+                break;
+            case "plane":
+                {
 
-            // set line segment buffer positions
-            line_segment_prefab.vertices[0] = shapes[i].position_a[0];
-            line_segment_prefab.vertices[1] = shapes[i].position_a[1];
-            line_segment_prefab.vertices[2] = shapes[i].position_a[2];
-            line_segment_prefab.vertices[3] = shapes[i].position_b[0];
-            line_segment_prefab.vertices[4] = shapes[i].position_b[1];
-            line_segment_prefab.vertices[5] = shapes[i].position_b[2];
+                }
+                break;
+            case "ring":
+                {
+                    var target = vec3.clone(shapes[i].position);
+                    vec3.add(target, target, shapes[i].normal);
+                    mat4.lookAt(model, shapes[i].position, target, up);
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, line_segmentVBO);
-            gl.bufferData(gl.ARRAY_BUFFER, line_segment_prefab.vertices, gl.STATIC_DRAW);
+                    // setting transform for computing electric field
+                    gl.useProgram(arrow_compute_program);
+                    gl.uniformMatrix4fv(shapes[i].inverse_loc, false, model);
+                    mat4.scalar.invert(model, model);
+                    gl.uniformMatrix4fv(shapes[i].model_loc, false, model);
+                    gl.useProgram(program);
 
-            gl.uniform1f(charge_loc, shapes[i].charge);
-            gl.uniform1f(radius_loc, 1.0);
+                    gl.uniformMatrix4fv(model_loc, false, model);
 
-            gl.bindVertexArray(shapes[i].mVAO);
-            gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
+                    gl.uniform1f(charge_loc, shapes[i].charge);
+                    gl.uniform1f(radius_loc, shapes[i].radius);
+
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
+                }
+                break;
+            case "disc":
+                {
+                    gl.disable(gl.CULL_FACE);
+
+                    var target = vec3.clone(shapes[i].position);
+                    vec3.add(target, target, shapes[i].normal);
+                    mat4.lookAt(model, shapes[i].position, target, up);
+
+                    // setting transform for computing electric field
+                    gl.useProgram(arrow_compute_program);
+
+                    gl.uniformMatrix4fv(shapes[i].inverse_loc, false, model);
+                    mat4.scalar.invert(model, model);
+                    gl.uniformMatrix4fv(shapes[i].model_loc, false, model);
+
+                    gl.useProgram(program);
+
+                    gl.uniformMatrix4fv(model_loc, false, model);
+
+                    gl.uniform1f(charge_loc, shapes[i].charge);
+                    gl.uniform1f(radius_loc, shapes[i].radius);
+
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.TRIANGLES, shapes[i].length, gl.UNSIGNED_INT, 0);
+
+                    gl.enable(gl.CULL_FACE);
+                }
+                break;
+            case "washer":
+                {
+                    
+                }
         }
     }
 
@@ -854,9 +1056,40 @@ function draw(time)
     gl.useProgram(arrow_compute_program);
 
     gl.uniformMatrix4fv(grid_loc_arrow_compute, false, grid.grid_matrix);
-    gl.uniform3f(pos_loc_arrow_compute, shapes[0].position[0], shapes[0].position[1], shapes[0].position[2]);
-    gl.uniform3f(pos2_loc_arrow_compute, shapes[1].position[0], shapes[1].position[1], shapes[1].position[2]);
-    gl.uniform1f(charge_loc_arrow_compute, shapes[0].charge);
+
+    for (var i = 0; i < shapes.length; ++i)
+    {
+        switch (shapes[i].name)
+        {
+            case "sphere":
+                gl.uniform3f(shapes[i].pos_loc, shapes[i].position[0], shapes[i].position[1], shapes[i].position[2]);
+                gl.uniform1f(shapes[i].charge_loc, shapes[i].charge);
+                break;
+            case "line segment":
+                gl.uniform3f(shapes[i].a_loc, shapes[i].position_a[0], shapes[i].position_a[1], shapes[i].position_a[2]);
+                gl.uniform3f(shapes[i].b_loc, shapes[i].position_b[0], shapes[i].position_b[1], shapes[i].position_b[2]);
+                gl.uniform1f(shapes[i].charge_loc, shapes[i].charge);
+                break;
+            case "plane":
+                gl.uniform3f(shapes[i].normal_loc, shapes[i].normal[0], shapes[i].normal[1], shapes[i].normal[2]);
+                gl.uniform3f(shapes[i].pos_loc, shapes[i].position[0], shapes[i].position[1], shapes[i].position[2]);
+                gl.uniform1f(shapes[i].sigma_loc, shapes[i].sigma);
+                break;
+            case "ring":
+            case "disc":
+                gl.uniform3f(shapes[i].normal_loc, shapes[i].normal[0], shapes[i].normal[1], shapes[i].normal[2]);
+                gl.uniform3f(shapes[i].pos_loc, shapes[i].position[0], shapes[i].position[1], shapes[i].position[2]);
+                gl.uniform1f(shapes[i].radius_loc, shapes[i].radius);
+                gl.uniform1f(shapes[i].charge_loc, shapes[i].charge);
+                break;
+            case "washer":
+                gl.uniform3f(shapes[i].normal_loc, shapes[i].normal[0], shapes[i].normal[1], shapes[i].normal[2]);
+                gl.uniform3f(shapes[i].pos_loc, shapes[i].position[0], shapes[i].position[1], shapes[i].position[2]);
+                gl.uniform1f(shapes[i].inner_loc, shapes[i].inner);
+                gl.uniform1f(shapes[i].outer_loc, shapes[i].outer);
+                gl.uniform1f(shapes[i].charge_loc, shapes[i].charge);
+        }
+    }
 
     gl.bindVertexArray(acVAO);
 

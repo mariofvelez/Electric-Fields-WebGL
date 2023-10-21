@@ -99,3 +99,76 @@ vec3 computeWasher(Washer washer, vec3 pos) // old compute washer shader functio
     }
     return Exyz;
 }
+
+void main() // old compute main function with test charges
+{
+    // calculate electric field vector at vpos
+    // point charge
+    /*Point Q1;
+    Q1.pos = pos;
+    Q1.q = charge;*/
+
+    // line segment charge
+    /*LineSegment Q2;
+    Q2.a = pos;
+    Q2.b = pos2;
+    Q2.q = charge * 4.0;*/
+
+    // infinite plane charge
+    /*Plane Q3;
+    Q3.normal = normalize(pos2 - pos);
+    Q3.pos = pos;
+    Q3.sigma = charge * 0.2*/;
+
+    // ring charge
+    /*Ring Q4;
+    vec3 dir = pos2 - pos;
+    Q4.normal = normalize(dir);
+    Q4.pos = pos;
+    Q4.radius = length(dir);
+    Q4.q = charge * 4.0;*/
+
+    // disc charge
+    Disc Q5;
+    vec3 dir = pos2 - pos;
+    Q5.normal = normalize(dir);
+    Q5.pos = pos;
+    Q5.radius = length(dir);
+    Q5.sigma = charge / 2.0;
+
+    // washer charge
+    /*Washer Q6;
+    vec3 dir = pos2 - pos;
+    Q6.normal = normalize(dir);
+    Q6.pos = pos;
+    Q6.outer = length(dir);
+    Q6.inner = Q6.outer / 2.0;
+    Q6.sigma = charge;*/
+
+    //vec3 z = computePoint(Q1, vpos);
+    //vec3 z = computeLineSegment(Q2, vpos);
+    //vec3 z = computePlane(Q3, vpos);
+    //vec3 z = computeGKRing(Q4, vpos);
+    vec3 z = computeGKDisc(Q5, vpos);
+    //vec3 z = computeGKWasher(Q6, vpos);
+
+    float mag = length(z);
+
+    // generate color
+    float col = clamp(mag, min_color, max_color);
+    col = map(col, min_color, max_color, 0.0, 1.0);
+    color = mix(vec3(0.0, 0.0117, 0.6784), vec3(0.941, 0.2039, 0.1215), col);
+
+    // clamp z between min and max value
+    float arrow_size = clamp(mag, 0.05, 1.0);
+    z *= (arrow_size / mag);
+
+    // calculate orientation matrix
+    vec3 x = normalize(cross(vpos, vec3(0.0003, 1.0, 0.0001))) * arrow_size;
+    vec3 y = normalize(cross(z, x)) * arrow_size;
+
+    transform[0] = vec4(x, 0.0);//vec4(x, vpos.x);
+    transform[1] = vec4(y, 0.0);//vec4(y, vpos.y);
+    transform[2] = vec4(z, 0.0);//vec4(z, vpos.z);
+    transform[3] = vec4(vpos, 1.0);
+}
