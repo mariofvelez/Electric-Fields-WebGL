@@ -728,6 +728,31 @@ function addWasher(position, inner, outer, normal, charge)
     updateComputeProgram();
 }
 
+function clearShapes(ask_clear)
+{
+    if (shapes.length === 0)
+        return;
+
+    var conf = true;
+    
+    if(ask_clear === undefined || ask_clear) conf = confirm("Are you sure you want to clear all objects in the scene?");
+    if (conf)
+    {
+        shapes.length = 0;
+        updateComputeProgram();
+    }
+}
+function createParallelPlate()
+{
+    var conf = confirm("Warning - This will clear all objects in the scene");
+    if (conf)
+    {
+        clearShapes(false);
+        addDisc(vec3.fromValues(0.0, 0.0, 1.0), 3.0, vec3.fromValues(0.0, 0.0, 1.0), 50.0);
+        addDisc(vec3.fromValues(0.0, 0.0, -1.0), 3.0, vec3.fromValues(0.0, 0.0, 1.0), -50.0);
+    }
+}
+
 var add_charge = document.getElementById("add-charge-button");
 // change to have a charge input
 add_charge.addEventListener("click", (e) => {
@@ -738,7 +763,7 @@ add_charge.addEventListener("click", (e) => {
 
 //addSphere(vec3.fromValues(1.0, 2.0, 1.0), sphere_radius, -5.0);
 
-addDisc(vec3.fromValues(0.0, 0.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 20.0);
+//addDisc(vec3.fromValues(0.0, 0.0, 0.0), 2.0, vec3.fromValues(1.0, 0.0, 0.0), 20.0);
 
 //addLineSegment(vec3.fromValues(3.0, 3.0, 3.0), vec3.fromValues(-3.0, -3.0, -3.0), 1.0);
 
