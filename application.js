@@ -1,6 +1,9 @@
+var canvas_container = document.querySelector("#canvas-container");
+
 var canvas = document.querySelector("#c");
-canvas.width = window.innerWidth;
+canvas.width = canvas_container.offsetWidth;
 canvas.height = window.innerHeight;
+
 
 var gl = canvas.getContext("webgl2");
 
@@ -590,7 +593,7 @@ gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, disc_prefab.indices, gl.STATIC_DRAW);
 function addSphere(position, radius, charge)
 {
     // creating HTML controls
-    const controls = document.getElementById("controls");
+    const controls = document.getElementById("charge-control-container");
     const div = document.createElement("div");
     controls.appendChild(div);
 
@@ -738,25 +741,35 @@ function clearShapes(ask_clear)
     if(ask_clear === undefined || ask_clear) conf = confirm("Are you sure you want to clear all objects in the scene?");
     if (conf)
     {
+        const controls = document.getElementById("charge-control-container");
+        controls.innerHTML = "";
+
         shapes.length = 0;
         updateComputeProgram();
     }
 }
 function createParallelPlate()
 {
-    var conf = confirm("Warning - This will clear all objects in the scene");
+    var conf = true;
+    if(shapes.length > 0) conf = confirm("Warning - This will clear all objects in the scene");
     if (conf)
     {
         clearShapes(false);
-        addDisc(vec3.fromValues(0.0, 0.0, 1.0), 3.0, vec3.fromValues(0.0, 0.0, 1.0), 50.0);
-        addDisc(vec3.fromValues(0.0, 0.0, -1.0), 3.0, vec3.fromValues(0.0, 0.0, 1.0), -50.0);
+        addDisc(vec3.fromValues(0.0, 0.0, 1.0), 3.0, vec3.fromValues(0.0, 0.0, 1.0), 75.0);
+        addDisc(vec3.fromValues(0.0, 0.0, -1.0), 3.0, vec3.fromValues(0.0, 0.0, 1.0), -75.0);
     }
 }
 
-var add_charge = document.getElementById("add-charge-button");
+var add_charge = document.getElementById("point-option");
 // change to have a charge input
 add_charge.addEventListener("click", (e) => {
     addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 1.0);
+}, false);
+
+var clear_button = document.getElementById("clear-button");
+
+clear_button.addEventListener("click", (e) => {
+    clearShapes(true);
 }, false);
 
 //addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 5.0);
@@ -859,9 +872,10 @@ gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
 // MVP matrices
 
 var cam_dist = 7.0;
+var far_plane = 50.0;
 
 var proj = mat4.create();
-mat4.perspective(proj, Math.PI / 2.0, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.1, 20.0);
+mat4.perspective(proj, Math.PI / 2.0, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.1, far_plane);
 
 var view = mat4.create();
 
@@ -934,12 +948,12 @@ canvas.addEventListener("mouseup", (e) => {
 window.addEventListener("resize", (e) => {
 
     // update canvas and projection
-    canvas.width = window.innerWidth;
+    canvas.width = canvas_container.offsetWidth;
     canvas.height = window.innerHeight;
 
     gl.viewport(0, 0, canvas.width, canvas.height);
 
-    mat4.perspective(proj, Math.PI / 2.0, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.1, 10.0);
+    mat4.perspective(proj, Math.PI / 2.0, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.1, far_plane);
     mat4.multiply(viewProj, proj, view);
 
 }, false);
