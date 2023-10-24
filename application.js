@@ -2,7 +2,7 @@ var canvas_container = document.querySelector("#canvas-container");
 
 var canvas = document.querySelector("#c");
 canvas.width = canvas_container.offsetWidth;
-canvas.height = window.innerHeight;
+canvas.height = window.innerHeight - 20;
 
 
 var gl = canvas.getContext("webgl2");
@@ -760,11 +760,18 @@ function createParallelPlate()
     }
 }
 
+// point charge
 var add_charge = document.getElementById("point-option");
-// change to have a charge input
 add_charge.addEventListener("click", (e) => {
     addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 1.0);
 }, false);
+
+// parallel plate
+var add_parallel_plate = document.getElementById("parallel-plate-option");
+add_parallel_plate.addEventListener("click", (e) => {
+    createParallelPlate();
+}, false);
+
 
 var clear_button = document.getElementById("clear-button");
 
@@ -949,7 +956,7 @@ window.addEventListener("resize", (e) => {
 
     // update canvas and projection
     canvas.width = canvas_container.offsetWidth;
-    canvas.height = window.innerHeight;
+    canvas.height = window.innerHeight - 20;
 
     gl.viewport(0, 0, canvas.width, canvas.height);
 
