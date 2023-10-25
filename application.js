@@ -826,6 +826,8 @@ console.log(model_loc);
 var prev_x = 0;
 var prev_y = 0;
 var is_mouse_down = false;
+var picking = false;
+var picking_id = 0;
 
 canvas.addEventListener("mousemove", (e) => {
 
@@ -834,17 +836,25 @@ canvas.addEventListener("mousemove", (e) => {
 
     if (is_mouse_down)
     {
-        theta += Math.PI * 2 * (dx / canvas.width);
-        phi += Math.PI * (dy / canvas.height);
+        if (picking)
+        {
+            computeGizmoAction(viewProj, picking_id, dx, dy);
+        }
+        else
+        {
+            // update camera
+            theta += Math.PI * 2 * (dx / canvas.width);
+            phi += Math.PI * (dy / canvas.height);
 
-        if (phi >= Math.PI * 0.5)
-            phi = Math.PI * 0.5 - 0.0001;
-        if (phi <= -Math.PI * 0.5)
-            phi = -Math.PI * 0.5 + 0.0001;
+            if (phi >= Math.PI * 0.5)
+                phi = Math.PI * 0.5 - 0.0001;
+            if (phi <= -Math.PI * 0.5)
+                phi = -Math.PI * 0.5 + 0.0001;
 
-        updateCamera(theta, phi);
+            updateCamera(theta, phi);
 
-        mat4.multiply(viewProj, proj, view);
+            mat4.multiply(viewProj, proj, view);
+        }
     }
 
     prev_x = e.offsetX;
@@ -857,11 +867,28 @@ canvas.addEventListener("mousedown", (e) => {
     is_mouse_down = true;
     canvas.style.cursor = "grabbing";
 
+    // check for picking
+    gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
+    var mx = e.offsetX;
+    var my = e.offsetY;
+
+    const px = mx * canvas.width / canvas.clientWidth;
+    const py = canvas.height - my * canvas.height / canvas.clientHeight - 1;
+    const picking_data = new Uint8Array(4);
+    gl.readPixels(px, py, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, picking_data);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    picking_id = picking_data[0] + (picking_data[1] << 8) + (picking_data[2] << 16) + (picking_data[3] << 24);
+
+    picking = picking_id !== -16777216 && picking_id !== 0;
+
+    console.log(picking_id);
+
 }, false);
 
 canvas.addEventListener("mouseup", (e) => {
 
     is_mouse_down = false;
+    picking = false;
     canvas.style.cursor = "auto";
 
 }, false);
@@ -893,6 +920,7 @@ function draw(time)
 {
     var seconds = time * 0.001;
 
+    gl.clearColor(0.1, 0.1, 0.1, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // shapes

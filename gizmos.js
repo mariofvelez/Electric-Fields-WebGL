@@ -135,13 +135,59 @@ function drawGizmo(proj)
     gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
     gl.viewport(0, 0, canvas.width, canvas.height);
 
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     drawTransformGizmo(proj);
 
     // draw to canvas
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clearColor(0.1, 0.1, 0.1, 1.0);
     gl.viewport(0, 0, canvas.width, canvas.height);
 
     drawTransformGizmo(proj);
+}
+
+const x_axis = vec3.fromValues(1.0, 0.0, 0.0);
+const y_axis = vec3.fromValues(0.0, 1.0, 0.0);
+const z_axis = vec3.fromValues(0.0, 0.0, 1.0);
+
+function computeGizmoAction(proj, id, dx, dy)
+{
+    if (!gizmos_shape)
+        return;
+
+    var inverse = mat4.create();
+    mat4.scalar.invert(inverse, proj);
+    var dv = vec4.fromValues(dx * 20.0 / canvas.clientWidth, dy * 20.0 / -canvas.clientHeight, 0.0, 0.0);
+    vec4.transformMat4(dv, dv, inverse);
+
+    //console.log(dv);
+    var vec = vec3.fromValues(dv[0], dv[1], dv[2]);
+
+    switch (id)
+    {
+        // x
+        case -16776961:
+            var x_amount = vec3.dot(vec, x_axis);
+            gizmos_shape.position[0] += x_amount
+            break;
+        // y
+        case -16711936:
+            var y_amount = vec3.dot(vec, y_axis);
+            gizmos_shape.position[1] += y_amount
+            break;
+        // z
+        case -65536:
+            var z_amount = vec3.dot(vec, z_axis);
+            gizmos_shape.position[2] += z_amount
+            break;
+        // move
+        case -8355712:
+            gizmos_shape.position[0] += dv[0];
+            gizmos_shape.position[1] += dv[1];
+            gizmos_shape.position[2] += dv[2];
+            break;
+    }
+
 }
