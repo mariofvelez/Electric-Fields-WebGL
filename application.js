@@ -1,6 +1,8 @@
 gl.clearColor(0.1, 0.1, 0.1, 1.0);
 
 gl.viewport(0, 0, canvas.width, canvas.height);
+setGizmosFrameBufferAttachmentSizes(canvas.width, canvas.height);
+gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 var lg_nodes_loc;
 var lg_weights_loc;
@@ -871,6 +873,7 @@ window.addEventListener("resize", (e) => {
     canvas.height = window.innerHeight - 20;
 
     gl.viewport(0, 0, canvas.width, canvas.height);
+    setGizmosFrameBufferAttachmentSizes(canvas.width, canvas.height);
 
     mat4.perspective(proj, Math.PI / 2.0, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.1, far_plane);
     mat4.multiply(viewProj, proj, view);
@@ -1076,7 +1079,7 @@ function draw(time)
     // gizmos
 
     gizmos_shape = shapes[0];
-    drawTransformGizmo(viewProj);
+    drawGizmo(viewProj);
 
     requestAnimationFrame(draw);
 }

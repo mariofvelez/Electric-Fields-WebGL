@@ -48,13 +48,47 @@ var arrowEBO = gl.createBuffer();
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, arrowEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrow_prefab.indices, gl.STATIC_DRAW);
 
+// gizmo id texture
+const gizmo_texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, gizmo_texture);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+// depth buffer
+const gizmo_depth_buffer = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, gizmo_depth_buffer);
+
+function setGizmosFrameBufferAttachmentSizes(width, height)
+{
+    gl.bindTexture(gl.TEXTURE_2D, gizmo_texture);
+
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const border = 0;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+    const data = null;
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, data);
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, gizmo_depth_buffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+}
+
+// create and bind framebuffer
+const gizmo_fb = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
+
+// attach texture
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, gizmo_texture, 0);
+
+// make depth buffer
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, gizmo_depth_buffer);
+
 var gizmos_shape;
 
 function drawTransformGizmo(proj)
 {
-    if (!gizmos_shape)
-        return;
-
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
     gl.useProgram(gizmos_program);
@@ -90,4 +124,24 @@ function drawTransformGizmo(proj)
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
     gl.uniform3f(color_loc_gizmos, 1.0, 0.0, 0.0);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
+}
+
+function drawGizmo(proj)
+{
+    if (!gizmos_shape)
+        return;
+
+    // draw to gizmo picking framebuffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    drawTransformGizmo(proj);
+
+    // draw to canvas
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    drawTransformGizmo(proj);
 }
