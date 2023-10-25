@@ -1,5 +1,67 @@
 // geometry
 
+function createCube(width)
+{
+    var vertices = new Float32Array([
+        // bottom
+         0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,
+         0.5,  0.5, -0.5,
+        -0.5,  0.5, -0.5,
+         0.5,  0.5, -0.5,
+        -0.5, -0.5, -0.5,
+
+        -0.5, -0.5,  0.5,
+         0.5, -0.5,  0.5,
+         0.5,  0.5,  0.5,
+         0.5,  0.5,  0.5,
+        -0.5,  0.5,  0.5,
+        -0.5, -0.5,  0.5,
+
+        -0.5,  0.5,  0.5,
+        -0.5,  0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5, -0.5,
+        -0.5, -0.5,  0.5,
+        -0.5,  0.5,  0.5,
+
+         0.5,  0.5, -0.5,
+         0.5,  0.5,  0.5,
+         0.5, -0.5, -0.5,
+         0.5, -0.5,  0.5,
+         0.5, -0.5, -0.5,
+         0.5,  0.5,  0.5,
+
+        -0.5, -0.5, -0.5,
+         0.5, -0.5, -0.5,
+         0.5, -0.5,  0.5,
+         0.5, -0.5,  0.5,
+        -0.5, -0.5,  0.5,
+        -0.5, -0.5, -0.5,
+
+         0.5,  0.5, -0.5,
+        -0.5,  0.5, -0.5,
+         0.5,  0.5,  0.5,
+        -0.5,  0.5,  0.5,
+         0.5,  0.5,  0.5,
+        -0.5,  0.5, -0.5
+    ]);
+    for (var i = 0; i < vertices.length; ++i)
+    {
+        vertices[i] *= width;
+    }
+    var indices = new Uint32Array(vertices.length);
+
+    for (var i = 0; i < indices.length; ++i)
+        indices[i] = i;
+
+    return {
+        vertices: vertices,
+        indices: indices
+    }
+
+}
+
 // Change to be created from icosahedron
 function createSphere(width, height, rho) {
     var vertex_size = 6 * (width + 1) * (height + 1);
@@ -165,12 +227,12 @@ function createGrid(norm, scale, width) {
     }
 }
 
-function createArrow() {
+function createArrow(scale = 1) {
     var width = 8;
-    var inside_r = 0.015;
-    var outside_r = 0.04;
-    var point_height = 0.4;
-    var height = 0.5
+    var inside_r = 0.015 * scale;
+    var outside_r = 0.04 * scale;
+    var point_height = 0.4 * scale;
+    var height = 0.5 * scale;
 
 
     var vertex_size = 3 * 3 * width + 6;

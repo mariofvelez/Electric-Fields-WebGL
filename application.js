@@ -1,16 +1,3 @@
-var canvas_container = document.querySelector("#canvas-container");
-
-var canvas = document.querySelector("#c");
-canvas.width = canvas_container.offsetWidth;
-canvas.height = window.innerHeight - 20;
-
-
-var gl = canvas.getContext("webgl2");
-
-if (!gl) {
-    console.error("WebGL not supported!");
-}
-
 gl.clearColor(0.1, 0.1, 0.1, 1.0);
 
 gl.viewport(0, 0, canvas.width, canvas.height);
@@ -234,81 +221,6 @@ var gk_weights = new Float32Array([
     1.987383892330315926507851882843410e-03,
     1.987383892330315926507851882843410e-03
 ]);
-
-
-// create shader programs
-function createProgram(vertex_source, fragment_source)
-{
-    var vertexShaderSource = document.querySelector(vertex_source).text.trim();
-    var fragmentShaderSource = document.querySelector(fragment_source).text.trim();
-
-    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, vertexShaderSource);
-    gl.compileShader(vertexShader);
-
-    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(vertexShader));
-    }
-
-    // fragment shader
-    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, fragmentShaderSource);
-    gl.compileShader(fragmentShader);
-
-    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(fragmentShader));
-    }
-
-    // shader program
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(program));
-    }
-
-    return program;
-}
-
-function createComputeProgram(vertex_source, fragment_source)
-{
-    var vertexShaderSource = document.querySelector(vertex_source).text.trim();
-    var fragmentShaderSource = document.querySelector(fragment_source).text.trim();
-
-    var vertexShader = gl.createShader(gl.VERTEX_SHADER);
-    gl.shaderSource(vertexShader, vertexShaderSource);
-    gl.compileShader(vertexShader);
-
-    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(vertexShader));
-    }
-
-    // fragment shader
-    var fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-    gl.shaderSource(fragmentShader, fragmentShaderSource);
-    gl.compileShader(fragmentShader);
-
-    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
-        console.error(gl.getShaderInfoLog(fragmentShader));
-    }
-
-    // shader program
-    var program = gl.createProgram();
-    gl.attachShader(program, vertexShader);
-    gl.attachShader(program, fragmentShader);
-
-    gl.transformFeedbackVaryings(program, ['color', 'transform'], gl.INTERLEAVED_ATTRIBS);
-
-    gl.linkProgram(program);
-
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-        console.error(gl.getProgramInfoLog(program));
-    }
-
-    return program;
-}
 
 function compileArrowCompute(vertex_source, fragment_source, shapes)
 {
@@ -1160,6 +1072,11 @@ function draw(time)
 
     gl.bindVertexArray(aVAO);
     gl.drawElementsInstanced(gl.TRIANGLES, arrow.indices.length, gl.UNSIGNED_INT, 0, grid.matrices.length / (16 + 3));
+
+    // gizmos
+
+    gizmos_shape = shapes[0];
+    drawTransformGizmo(viewProj);
 
     requestAnimationFrame(draw);
 }

@@ -56,6 +56,33 @@
             fragColor = vec4((mix(low_charge, high_charge, (uCharge / 20.0) + 0.5) * light), 1.0);
         }
     </script>
+    <script id="GizmosVertex-shader" type="vertex">
+        #version 300 es
+
+        layout (location = 0) in vec3 position;
+
+        uniform mat4 uViewProjection;
+        uniform mat4 uModel;
+
+        void main()
+        {
+            vec4 pos = vec4(position, 1.0);
+            gl_Position = uViewProjection * uModel * pos;
+        }
+    </script>
+    <script id="GizmosFragment-shader" type="fragment">
+        #version 300 es
+        precision highp float;
+
+        out vec4 fragColor;
+
+        uniform vec3 uColor;
+
+        void main()
+        {
+            fragColor = vec4(uColor, 1.0);
+        }
+    </script>
     <script id="GridVertex-shader" type="vertex">
         #version 300 es
 
@@ -439,7 +466,9 @@
         </div>
     </div>
     <script src="gl-matrix.js"></script>
+    <script src="gl-utils.js"></script>
     <script src="shapes.js"></script>
+    <script src="gizmos.js"></script>
     <script src="application.js"></script>
 </body>
 </html>
