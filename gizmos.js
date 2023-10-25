@@ -87,7 +87,7 @@ gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER,
 
 var gizmos_shape;
 
-function drawTransformGizmo(proj)
+function drawTransformGizmo(proj, scale)
 {
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
@@ -97,8 +97,9 @@ function drawTransformGizmo(proj)
     gl.bindVertexArray(boxVAO);
 
     var model = mat4.create();
-
+    
     mat4.scalar.translate(model, model, gizmos_shape.position);
+    mat4.scale(model, model, scale);
 
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
     gl.uniformMatrix4fv(proj_loc_gizmos, false, proj);
@@ -138,14 +139,14 @@ function drawGizmo(proj)
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    drawTransformGizmo(proj);
+    drawTransformGizmo(proj, vec3.fromValues(2.0, 2.0, 2.0));
 
     // draw to canvas
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clearColor(0.1, 0.1, 0.1, 1.0);
     gl.viewport(0, 0, canvas.width, canvas.height);
 
-    drawTransformGizmo(proj);
+    drawTransformGizmo(proj, vec3.fromValues(1.0, 1.0, 1.0));
 }
 
 const x_axis = vec3.fromValues(1.0, 0.0, 0.0);
