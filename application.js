@@ -503,6 +503,32 @@ var discEBO = gl.createBuffer();
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, discEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, disc_prefab.indices, gl.STATIC_DRAW);
 
+// washer
+var washer_prefab = createWasher(0.5, 1.0);
+console.log(washer_prefab);
+
+var washerVBO = gl.createBuffer();
+
+var washerVAO = gl.createVertexArray();
+
+gl.bindVertexArray(washerVAO);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, washerVBO);
+gl.bufferData(gl.ARRAY_BUFFER, washer_prefab.vertices, gl.DYNAMIC_DRAW);
+
+// position
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 6 * 4, 0);
+gl.enableVertexAttribArray(0);
+
+// normal
+gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 6 * 4, 3 * 4);
+gl.enableVertexAttribArray(1);
+
+var washerEBO = gl.createBuffer();
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, washerEBO);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, washer_prefab.indices, gl.STATIC_DRAW);
+
 
 function addSphere(position, radius, charge)
 {
@@ -642,6 +668,17 @@ function addDisc(position, radius, normal, charge)
 
 function addWasher(position, inner, outer, normal, charge)
 {
+    shapes.push({
+        name: "washer",
+        position: position,
+        inner: inner,
+        outer: outer,
+        normal: normal,
+        length: washer_prefab.indices.length,
+        charge: charge,
+        mVAO: washerVAO
+    });
+
     updateComputeProgram();
 }
 
@@ -675,9 +712,39 @@ function createParallelPlate()
 }
 
 // point charge
-var add_charge = document.getElementById("point-option");
-add_charge.addEventListener("click", (e) => {
+var add_charge_button = document.getElementById("point-option");
+add_charge_button.addEventListener("click", (e) => {
     addSphere(vec3.fromValues(0.0, 0.0, 0.0), sphere_radius, 1.0);
+}, false);
+
+// line
+var add_line_segment_button = document.getElementById("line-segment-option");
+add_line_segment_button.addEventListener("click", (e) => {
+    addLineSegment(vec3.fromValues(0.0, -1.0, 0.0), vec3.fromValues(0.0, -1.0, 0.0), 0.0);
+}, false);
+
+// plane
+var add_plane_button = document.getElementById("plane-option");
+add_plane_button.addEventListener("click", (e) => {
+    addPlane(vec3.fromValues(0.0, 0.0, 0.0), vec3.fromValues(0.0, 1.0, 0.0), 0.0);
+}, false);
+
+// ring
+var add_ring_button = document.getElementById("ring-option");
+add_ring_button.addEventListener("click", (e) => {
+    addRing(vec3.fromValues(0.0, 0.0, 0.0), 2.0, vec3.fromValues(0.0, 1.0, 0.0), 0.0);
+}, false);
+
+// disc
+var add_disc_button = document.getElementById("disc-option");
+add_disc_button.addEventListener("click", (e) => {
+    addDisc(vec3.fromValues(0.0, 0.0, 0.0), 2.0, vec3.fromValues(0.0, 1.0, 0.0), 0.0);
+}, false);
+
+// washer
+var add_washer_button = document.getElementById("washer-option");
+add_washer_button.addEventListener("click", (e) => {
+    addWasher(vec3.fromValues(0.0, 0.0, 0.0), 1.0, 2.0, vec3.fromValues(0.0, 1.0, 0.0), 0.0);
 }, false);
 
 // parallel plate
@@ -947,7 +1014,6 @@ function draw(time)
                 break;
             case "line segment":
                 {
-                    console.log("drawing line segment");
                     gl.uniformMatrix4fv(model_loc, false, model);
 
                     // set line segment buffer positions
@@ -1025,7 +1091,34 @@ function draw(time)
                 break;
             case "washer":
                 {
-                    
+                    gl.disable(gl.CULL_FACE);
+
+                    updateWasher(washer_prefab.vertices, shapes[i].inner, shapes[i].outer);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, washerVBO);
+                    gl.bufferData(gl.ARRAY_BUFFER, washer_prefab.vertices, gl.DYNAMIC_DRAW);
+
+                    var target = vec3.clone(shapes[i].position);
+                    vec3.add(target, target, shapes[i].normal);
+                    mat4.lookAt(model, shapes[i].position, target, up);
+
+                    // setting transform for computing electric field
+                    gl.useProgram(arrow_compute_program);
+
+                    gl.uniformMatrix4fv(shapes[i].inverse_loc, false, model);
+                    mat4.scalar.invert(model, model);
+                    gl.uniformMatrix4fv(shapes[i].model_loc, false, model);
+
+                    gl.useProgram(program);
+
+                    gl.uniformMatrix4fv(model_loc, false, model);
+
+                    gl.uniform1f(charge_loc, shapes[i].charge);
+                    gl.uniform1f(radius_loc, 1.0);
+
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.TRIANGLES, shapes[i].length, gl.UNSIGNED_INT, 0);
+
+                    gl.enable(gl.CULL_FACE);
                 }
         }
     }

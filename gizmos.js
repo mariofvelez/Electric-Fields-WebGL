@@ -97,8 +97,12 @@ function drawTransformGizmo(proj, scale)
     gl.bindVertexArray(boxVAO);
 
     var model = mat4.create();
+
+    var position = gizmos_shape.position;
+    if (position === undefined)
+        position = gizmos_shape.position_a;
     
-    mat4.scalar.translate(model, model, gizmos_shape.position);
+    mat4.scalar.translate(model, model, position);
     mat4.scale(model, model, scale);
 
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
@@ -158,6 +162,10 @@ function computeGizmoAction(proj, id, dx, dy)
     if (!gizmos_shape)
         return;
 
+    var position = gizmos_shape.position;
+    if (position === undefined)
+        position = gizmos_shape.position_a;
+
     var inverse = mat4.create();
     mat4.scalar.invert(inverse, proj);
     var dv = vec4.fromValues(dx * 20.0 / canvas.clientWidth, dy * 20.0 / -canvas.clientHeight, 0.0, 0.0);
@@ -171,23 +179,23 @@ function computeGizmoAction(proj, id, dx, dy)
         // x
         case -16776961:
             var x_amount = vec3.dot(vec, x_axis);
-            gizmos_shape.position[0] += x_amount
+            position[0] += x_amount
             break;
         // y
         case -16711936:
             var y_amount = vec3.dot(vec, y_axis);
-            gizmos_shape.position[1] += y_amount
+            position[1] += y_amount
             break;
         // z
         case -65536:
             var z_amount = vec3.dot(vec, z_axis);
-            gizmos_shape.position[2] += z_amount
+            position[2] += z_amount
             break;
         // move
         case -8355712:
-            gizmos_shape.position[0] += dv[0];
-            gizmos_shape.position[1] += dv[1];
-            gizmos_shape.position[2] += dv[2];
+            position[0] += dv[0];
+            position[1] += dv[1];
+            position[2] += dv[2];
             break;
     }
 

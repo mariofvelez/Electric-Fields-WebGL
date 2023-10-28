@@ -349,7 +349,7 @@ function createLineSegment()
 
 function createRing()
 {
-    var subdivisions = 32;
+    const subdivisions = 32;
 
     var vertex_size = 3 * subdivisions;
     var index_size = 2 * subdivisions;
@@ -378,7 +378,7 @@ function createRing()
 
 function createDisc()
 {
-    var subdivisions = 32;
+    const subdivisions = 32;
 
     var vertex_size = 6 * subdivisions;
     var index_size = 3 * (subdivisions - 2);
@@ -407,5 +407,77 @@ function createDisc()
     return {
         vertices: vertices,
         indices: indices
+    }
+}
+
+function createWasher(inner, outer)
+{
+    const subdivisions = 32;
+
+    var vertex_size = 6 * 2 * subdivisions;
+    var index_size = 6 * subdivisions;
+
+    var vertices = new Float32Array(vertex_size);
+    var indices = new Uint32Array(index_size);
+
+    for (var i = 0; i < subdivisions; ++i)
+    {
+        var theta = 2.0 * Math.PI * i / subdivisions;
+        // inner
+        vertices[i * 12 + 0] = inner * Math.cos(theta);
+        vertices[i * 12 + 1] = inner * Math.sin(theta);
+        vertices[i * 12 + 2] = 0.0;
+        vertices[i * 12 + 3] = 0.0;
+        vertices[i * 12 + 4] = 0.0;
+        vertices[i * 12 + 5] = 1.0;
+
+        // outer
+        vertices[i * 12 + 6] = outer * Math.cos(theta);
+        vertices[i * 12 + 7] = outer * Math.sin(theta);
+        vertices[i * 12 + 8] = 0.0;
+        vertices[i * 12 + 9] = 0.0;
+        vertices[i * 12 + 10] = 0.0;
+        vertices[i * 12 + 11] = 1.0;
+
+        var next = i + 1;
+        if (next >= subdivisions)
+            next = 0;
+        indices[i * 6 + 0] = i * 2 + 0;
+        indices[i * 6 + 1] = i * 2 + 1;
+        indices[i * 6 + 2] = next * 2 + 0;
+
+        indices[i * 6 + 3] = i * 2 + 1;
+        indices[i * 6 + 4] = next * 2 + 1;
+        indices[i * 6 + 5] = next * 2 + 0;
+    }
+
+    return {
+        vertices: vertices,
+        indices: indices
+    }
+}
+
+function updateWasher(vertices, inner, outer)
+{
+    const subdivisions = 32;
+
+    for (var i = 0; i < subdivisions; ++i)
+    {
+        var theta = 2.0 * Math.PI * i / subdivisions;
+        // inner
+        vertices[i * 12 + 0] = inner * Math.cos(theta);
+        vertices[i * 12 + 1] = inner * Math.sin(theta);
+        vertices[i * 12 + 2] = 0.0;
+        vertices[i * 12 + 3] = 0.0;
+        vertices[i * 12 + 4] = 0.0;
+        vertices[i * 12 + 5] = 1.0;
+
+        // outer
+        vertices[i * 12 + 6] = outer * Math.cos(theta);
+        vertices[i * 12 + 7] = outer * Math.sin(theta);
+        vertices[i * 12 + 8] = 0.0;
+        vertices[i * 12 + 9] = 0.0;
+        vertices[i * 12 + 10] = 0.0;
+        vertices[i * 12 + 11] = 1.0;
     }
 }
