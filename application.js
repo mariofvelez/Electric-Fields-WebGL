@@ -880,6 +880,20 @@ function updateCamera(theta, phi)
     mat4.multiply(viewProj, proj, view);
 }
 
+function getCameraPos(theta, phi)
+{
+    var x = Math.cos(phi) * Math.cos(theta);
+    var y = Math.sin(phi);
+    var z = Math.cos(phi) * Math.sin(theta);
+
+    return vec3.fromValues(x * cam_dist, y * cam_dist, z * cam_dist);
+}
+
+var mouse_ray = {
+    pos: vec3.create(),
+    dir: vec3.create()
+};
+
 // camera angles
 var theta = 0;
 var phi = 0.1;
@@ -905,7 +919,21 @@ canvas.addEventListener("mousemove", (e) => {
     {
         if (picking)
         {
-            computeGizmoAction(viewProj, picking_id, dx, dy);
+            var px = e.offsetX * 2.0 / canvas.clientWidth - 1.0; // normalized device coordinates
+            var py = e.offsetY * 2.0 / canvas.clientHeight - 1.0;
+
+            // creating mouse pointer ray
+            mouse_ray.pos = getCameraPos(theta, phi);
+            var proj_inverse = mat4.create();
+            mat4.scalar.invert(proj_inverse, viewProj);
+            var mouse_pos = vec3.fromValues(px, -py, 1.0);
+            vec3.transformMat4(mouse_pos, mouse_pos, proj_inverse);
+            vec3.subtract(mouse_ray.dir, mouse_pos, mouse_ray.pos);
+            vec3.normalize(mouse_ray.dir, mouse_ray.dir);
+
+            dx = dx * 2.0 / canvas.clientWidth;
+            dy = -dy * 2.0 / canvas.clientHeight;
+            computeGizmoAction(view, picking_id, mouse_ray, dx, dy);
         }
         else
         {
@@ -956,7 +984,9 @@ canvas.addEventListener("mouseup", (e) => {
 
     is_mouse_down = false;
     picking = false;
+    current_gizmo_action = "none";
     canvas.style.cursor = "auto";
+    gizmosMouseUp();
 
 }, false);
 

@@ -1,4 +1,4 @@
-// box
+// move box
 var box_prefab = createCube(0.2);
 console.log(box_prefab);
 
@@ -11,7 +11,6 @@ gl.bindVertexArray(boxVAO);
 gl.bindBuffer(gl.ARRAY_BUFFER, boxVBO);
 gl.bufferData(gl.ARRAY_BUFFER, box_prefab.vertices, gl.STATIC_DRAW);
 
-// position
 gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
 gl.enableVertexAttribArray(0);
 
@@ -26,7 +25,7 @@ var proj_loc_gizmos = gl.getUniformLocation(gizmos_program, "uViewProjection");
 var model_loc_gizmos = gl.getUniformLocation(gizmos_program, "uModel");
 var color_loc_gizmos = gl.getUniformLocation(gizmos_program, "uColor");
 
-// arrow
+// translate arrow
 var arrow_prefab = createArrow(2.0);
 console.log(arrow_prefab);
 
@@ -39,7 +38,6 @@ gl.bindVertexArray(arrowVAO);
 gl.bindBuffer(gl.ARRAY_BUFFER, arrowVBO);
 gl.bufferData(gl.ARRAY_BUFFER, arrow_prefab.vertices, gl.STATIC_DRAW);
 
-// position
 gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
 gl.enableVertexAttribArray(0);
 
@@ -47,6 +45,49 @@ var arrowEBO = gl.createBuffer();
 
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, arrowEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrow_prefab.indices, gl.STATIC_DRAW);
+
+// rotate ring
+var rotate_prefab = createRing();
+
+var rotateVBO = gl.createBuffer();
+
+var rotateVAO = gl.createVertexArray();
+
+gl.bindVertexArray(rotateVAO);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, rotateVBO);
+gl.bufferData(gl.ARRAY_BUFFER, rotate_prefab.vertices, gl.STATIC_DRAW);
+
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
+gl.enableVertexAttribArray(0);
+
+var rotateEBO = gl.createBuffer();
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, rotateEBO);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, rotate_prefab.indices, gl.STATIC_DRAW);
+
+// rotate washer
+var rotate_washer_prefab = createWasher(0.8, 1.2);
+
+var rotate_washerVBO = gl.createBuffer();
+
+var rotate_washerVAO = gl.createVertexArray();
+
+gl.bindVertexArray(rotate_washerVAO);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, rotate_washerVBO);
+gl.bufferData(gl.ARRAY_BUFFER, rotate_washer_prefab.vertices, gl.STATIC_DRAW);
+
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 6 * 4, 0);
+gl.enableVertexAttribArray(0);
+
+gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 6 * 4, 3 * 4);
+gl.enableVertexAttribArray(1);
+
+var rotate_washerEBO = gl.createBuffer();
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, rotate_washerEBO);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, rotate_washer_prefab.indices, gl.STATIC_DRAW);
 
 // gizmo id texture
 const gizmo_texture = gl.createTexture();
@@ -58,6 +99,10 @@ gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 // depth buffer
 const gizmo_depth_buffer = gl.createRenderbuffer();
 gl.bindRenderbuffer(gl.RENDERBUFFER, gizmo_depth_buffer);
+
+// up vector
+var up = vec3.fromValues(0.4937, -3.193, 0.7173);
+vec3.normalize(up, up);
 
 function setGizmosFrameBufferAttachmentSizes(width, height)
 {
@@ -87,7 +132,11 @@ gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER,
 
 var gizmos_shape;
 
-function drawTransformGizmo(proj, scale)
+var current_gizmo_action = "none";
+
+var rotate_pos = vec3.create();
+
+function drawTransformGizmo(proj, scale, options)
 {
     gl.clear(gl.DEPTH_BUFFER_BIT);
 
@@ -102,7 +151,7 @@ function drawTransformGizmo(proj, scale)
     if (position === undefined)
         position = gizmos_shape.position_a;
     
-    mat4.scalar.translate(model, model, position);
+    mat4.scalar.translate(model, model, gizmos_shape.position);
     mat4.scale(model, model, scale);
 
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
@@ -111,30 +160,67 @@ function drawTransformGizmo(proj, scale)
 
     gl.drawElements(gl.TRIANGLES, box_prefab.indices.length, gl.UNSIGNED_INT, 0);
 
-    // draw arrow
-    gl.bindVertexArray(arrowVAO);
+    gl.disable(gl.CULL_FACE);
 
     // z
-    gl.uniform3f(color_loc_gizmos, 0.0, 0.0, 1.0);
+    gl.uniform3f(color_loc_gizmos, options.tz_color[0], options.tz_color[1], options.tz_color[2]);
+    gl.bindVertexArray(arrowVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
+
+    if (gizmos_shape.normal)
+    {
+        gl.uniform3f(color_loc_gizmos, options.rz_color[0], options.rz_color[1], options.rz_color[2]);
+        gl.bindVertexArray(options.VAO);
+        gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
+    }
 
     // y
     mat4.rotate(model, model, Math.PI / 2.0, vec3.fromValues(-1.0, 0.0, 0.0));
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
-    gl.uniform3f(color_loc_gizmos, 0.0, 1.0, 0.0);
+    gl.uniform3f(color_loc_gizmos, options.ty_color[0], options.ty_color[1], options.ty_color[2]);
+    gl.bindVertexArray(arrowVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
+
+    if (gizmos_shape.normal)
+    {
+        gl.uniform3f(color_loc_gizmos, options.ry_color[0], options.ry_color[1], options.ry_color[2]);
+        gl.bindVertexArray(options.VAO);
+        gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
+    }
 
     // x
     mat4.rotate(model, model, Math.PI / 2.0, vec3.fromValues(0.0, 1.0, 0.0));
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
-    gl.uniform3f(color_loc_gizmos, 1.0, 0.0, 0.0);
+    gl.uniform3f(color_loc_gizmos, options.tx_color[0], options.tx_color[1], options.tx_color[2]);
+    gl.bindVertexArray(arrowVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
+
+    if (gizmos_shape.normal)
+    {
+        gl.uniform3f(color_loc_gizmos, options.rx_color[0], options.rx_color[1], options.rx_color[2]);
+        gl.bindVertexArray(options.VAO);
+        gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
+    }
+
+    gl.enable(gl.CULL_FACE);
 }
 
 function drawGizmo(proj)
 {
     if (!gizmos_shape)
         return;
+
+    var options = {
+        VAO: rotate_washerVAO,
+        draw_mode: gl.TRIANGLES,
+        length: rotate_washer_prefab.indices.length,
+        rx_color: vec3.fromValues(0.0, 1.0, 1.0),
+        ry_color: vec3.fromValues(1.0, 0.0, 1.0),
+        rz_color: vec3.fromValues(1.0, 1.0, 0.0),
+        tx_color: vec3.fromValues(1.0, 0.0, 0.0),
+        ty_color: vec3.fromValues(0.0, 1.0, 0.0),
+        tz_color: vec3.fromValues(0.0, 0.0, 1.0)
+    };
 
     // draw to gizmo picking framebuffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
@@ -143,21 +229,33 @@ function drawGizmo(proj)
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    drawTransformGizmo(proj, vec3.fromValues(2.0, 2.0, 2.0));
+    drawTransformGizmo(proj, vec3.fromValues(1.0, 1.0, 1.0), options);
+
+    options = {
+        VAO: rotateVAO,
+        draw_mode: gl.LINES,
+        length: rotate_prefab.indices.length,
+        rx_color: vec3.fromValues(1.0, 0.36, 0.29),
+        ry_color: vec3.fromValues(0.5843, 1.0, 0.29),
+        rz_color: vec3.fromValues(0.29, 0.5137, 1.0),
+        tx_color: vec3.fromValues(1.0, 0.0, 0.0),
+        ty_color: vec3.fromValues(0.0, 1.0, 0.0),
+        tz_color: vec3.fromValues(0.0, 0.0, 1.0)
+    };
 
     // draw to canvas
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.clearColor(0.1, 0.1, 0.1, 1.0);
     gl.viewport(0, 0, canvas.width, canvas.height);
 
-    drawTransformGizmo(proj, vec3.fromValues(1.0, 1.0, 1.0));
+    drawTransformGizmo(proj, vec3.fromValues(1.0, 1.0, 1.0), options);
 }
 
 const x_axis = vec3.fromValues(1.0, 0.0, 0.0);
 const y_axis = vec3.fromValues(0.0, 1.0, 0.0);
 const z_axis = vec3.fromValues(0.0, 0.0, 1.0);
 
-function computeGizmoAction(proj, id, dx, dy)
+function computeGizmoAction(proj, id, ray, dx, dy)
 {
     if (!gizmos_shape)
         return;
@@ -166,10 +264,29 @@ function computeGizmoAction(proj, id, dx, dy)
     if (position === undefined)
         position = gizmos_shape.position_a;
 
+    var normal = gizmos_shape.normal;
+    //if (normal === undefined)
+
     var inverse = mat4.create();
     mat4.scalar.invert(inverse, proj);
-    var dv = vec4.fromValues(dx * 20.0 / canvas.clientWidth, dy * 20.0 / -canvas.clientHeight, 0.0, 0.0);
+    var dv = vec4.fromValues(dx, dy, 0.0, 0.0);
     vec4.transformMat4(dv, dv, inverse);
+
+
+    // rotation calculations
+    var b = vec3.create(); // closest point on circle
+
+    var p_a = vec3.create();
+    vec3.subtract(p_a, gizmos_shape.position, ray.pos);
+    var l = vec3.dot(ray.dir, p_a);
+
+    var c = vec3.create(); // closest point on the sphere to the ray
+    vec3.scale(c, ray.dir, l);
+    vec3.subtract(c, c, p_a);
+    vec3.normalize(c, c);
+    vec3.scale(c, c, 1.0); // radius of sphere
+
+    var rotate_axis = null;
 
     //console.log(dv);
     var vec = vec3.fromValues(dv[0], dv[1], dv[2]);
@@ -178,25 +295,103 @@ function computeGizmoAction(proj, id, dx, dy)
     {
         // x
         case -16776961:
-            var x_amount = vec3.dot(vec, x_axis);
+            current_gizmo_action = "translate_x";
+            console.log("x");
+            var x_amount = vec3.dot(vec, x_axis) * 10.0;
             position[0] += x_amount
             break;
         // y
         case -16711936:
-            var y_amount = vec3.dot(vec, y_axis);
+            current_gizmo_action = "translate_y";
+            console.log("y");
+            var y_amount = vec3.dot(vec, y_axis) * 10.0;
             position[1] += y_amount
             break;
         // z
         case -65536:
-            var z_amount = vec3.dot(vec, z_axis);
+            current_gizmo_action = "translate_z";
+            console.log("z");
+            var z_amount = vec3.dot(vec, z_axis) * 10.0;
             position[2] += z_amount
             break;
         // move
         case -8355712:
-            position[0] += dv[0];
-            position[1] += dv[1];
-            position[2] += dv[2];
+            current_gizmo_action = "move";
+            position[0] += dv[0] * 10.0;
+            position[1] += dv[1] * 10.0;
+            position[2] += dv[2] * 10.0;
             break;
+        case -256:
+            current_gizmo_action = "rotate_x";
+            console.log("rotate x");
+            rotate_axis = x_axis;
+            break;
+        case -65281:
+            current_gizmo_action = "rotate_y";
+            console.log("rotate y");
+            rotate_axis = y_axis;
+            break;
+        case -16711681:
+            current_gizmo_action = "rotate_z";
+            console.log("rotate z");
+            rotate_axis = z_axis;
     }
 
+    if (rotate_axis !== null)
+    {
+        var i_hat = vec3.create(); // i, j, k unit vectors
+        vec3.cross(i_hat, rotate_axis, up);
+        vec3.normalize(i_hat, i_hat);
+        var j_hat = vec3.create();
+        vec3.cross(j_hat, i_hat, rotate_axis);
+
+        var c_p = vec3.create(); // projecting c onto the plane
+        vec3.subtract(c_p, c, gizmos_shape.position);
+        var c_prime = vec3.create();
+        var c_i = vec3.dot(c_p, i_hat);
+        var c_j = vec3.dot(c_p, j_hat);
+        var i_prime = vec3.create();
+        vec3.scale(i_prime, i_hat, c_i);
+        var j_prime = vec3.create();
+        vec3.scale(j_prime, j_hat, c_j);
+        vec3.add(c_prime, i_prime, j_prime);
+        vec3.normalize(c_prime, c_prime);
+        vec3.scale(c_prime, c_prime, 1.0); // radius of circle
+        vec3.add(b, c_prime, gizmos_shape.position);
+
+
+        if (rotate_axis != null && vec3.length(rotate_pos) !== 0.0)
+        {
+            // compute angle between b and rotate_pos
+            var va = vec3.create();
+            vec3.subtract(va, rotate_pos, gizmos_shape.position);
+            var vb = vec3.create();
+            vec3.subtract(vb, b, gizmos_shape.position);
+
+            var angle = Math.acos(vec3.dot(va, vb) / (vec3.length(va) * vec3.length(vb)));
+            var cross = vec3.create();
+            vec3.cross(cross, va, vb);
+            var dot = vec3.dot(rotate_axis, cross);
+            if (dot < 0)
+                angle = -angle;
+
+            console.log("va: " + va);
+            console.log("vb: " + vb)
+
+            if (rotate_axis === x_axis)
+                vec3.rotateX(gizmos_shape.normal, gizmos_shape.normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
+            else if (rotate_axis === y_axis)
+                vec3.rotateY(gizmos_shape.normal, gizmos_shape.normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
+            else if (rotate_axis === z_axis)
+                vec3.rotateZ(gizmos_shape.normal, gizmos_shape.normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
+        }
+        rotate_pos = b;
+        rotate_axis = null;
+    }
+}
+
+function gizmosMouseUp()
+{
+    vec3.set(rotate_pos, 0.0, 0.0, 0.0);
+    rotate_axis = null;
 }
