@@ -151,7 +151,7 @@ function drawTransformGizmo(proj, scale, options)
     if (position === undefined)
         position = gizmos_shape.position_a;
     
-    mat4.scalar.translate(model, model, gizmos_shape.position);
+    mat4.scalar.translate(model, model, position);
     mat4.scale(model, model, scale);
 
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
@@ -277,7 +277,7 @@ function computeGizmoAction(proj, id, ray, dx, dy)
     var b = vec3.create(); // closest point on circle
 
     var p_a = vec3.create();
-    vec3.subtract(p_a, gizmos_shape.position, ray.pos);
+    vec3.subtract(p_a, position, ray.pos);
     var l = vec3.dot(ray.dir, p_a);
 
     var c = vec3.create(); // closest point on the sphere to the ray
@@ -345,11 +345,9 @@ function computeGizmoAction(proj, id, ray, dx, dy)
         var j_hat = vec3.create();
         vec3.cross(j_hat, i_hat, rotate_axis);
 
-        var c_p = vec3.create(); // projecting c onto the plane
-        vec3.subtract(c_p, c, gizmos_shape.position);
-        var c_prime = vec3.create();
-        var c_i = vec3.dot(c_p, i_hat);
-        var c_j = vec3.dot(c_p, j_hat);
+        var c_prime = vec3.create(); // projecting c onto the plane
+        var c_i = vec3.dot(c, i_hat);
+        var c_j = vec3.dot(c, j_hat);
         var i_prime = vec3.create();
         vec3.scale(i_prime, i_hat, c_i);
         var j_prime = vec3.create();
@@ -357,16 +355,16 @@ function computeGizmoAction(proj, id, ray, dx, dy)
         vec3.add(c_prime, i_prime, j_prime);
         vec3.normalize(c_prime, c_prime);
         vec3.scale(c_prime, c_prime, 1.0); // radius of circle
-        vec3.add(b, c_prime, gizmos_shape.position);
+        vec3.add(b, c_prime, position);
 
 
         if (rotate_axis != null && vec3.length(rotate_pos) !== 0.0)
         {
             // compute angle between b and rotate_pos
             var va = vec3.create();
-            vec3.subtract(va, rotate_pos, gizmos_shape.position);
+            vec3.subtract(va, rotate_pos, position);
             var vb = vec3.create();
-            vec3.subtract(vb, b, gizmos_shape.position);
+            vec3.subtract(vb, b, position);
 
             var angle = Math.acos(vec3.dot(va, vb) / (vec3.length(va) * vec3.length(vb)));
             var cross = vec3.create();
@@ -375,15 +373,12 @@ function computeGizmoAction(proj, id, ray, dx, dy)
             if (dot < 0)
                 angle = -angle;
 
-            console.log("va: " + va);
-            console.log("vb: " + vb)
-
             if (rotate_axis === x_axis)
-                vec3.rotateX(gizmos_shape.normal, gizmos_shape.normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
+                vec3.rotateX(gizmos_shape.normal, normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
             else if (rotate_axis === y_axis)
-                vec3.rotateY(gizmos_shape.normal, gizmos_shape.normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
+                vec3.rotateY(gizmos_shape.normal, normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
             else if (rotate_axis === z_axis)
-                vec3.rotateZ(gizmos_shape.normal, gizmos_shape.normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
+                vec3.rotateZ(gizmos_shape.normal, normal, vec3.fromValues(0.0, 0.0, 0.0), angle);
         }
         rotate_pos = b;
         rotate_axis = null;
