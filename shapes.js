@@ -227,11 +227,11 @@ function createGrid(norm, scale, width) {
     }
 }
 
-function createArrow(scale = 1) {
+function createArrow(scale = 1, in_r = 0.015, out_r = 0.04, p_height = 0.4) {
     var width = 8;
-    var inside_r = 0.015 * scale;
-    var outside_r = 0.04 * scale;
-    var point_height = 0.4 * scale;
+    var inside_r = in_r * scale;
+    var outside_r = out_r * scale;
+    var point_height = p_height * scale;
     var height = 0.5 * scale;
 
 

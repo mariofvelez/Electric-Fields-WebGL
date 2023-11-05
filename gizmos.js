@@ -26,7 +26,7 @@ var model_loc_gizmos = gl.getUniformLocation(gizmos_program, "uModel");
 var color_loc_gizmos = gl.getUniformLocation(gizmos_program, "uColor");
 
 // translate arrow
-var arrow_prefab = createArrow(2.0);
+var arrow_prefab = createArrow(scale=2.0);
 console.log(arrow_prefab);
 
 var arrowVBO = gl.createBuffer();
@@ -45,6 +45,27 @@ var arrowEBO = gl.createBuffer();
 
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, arrowEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrow_prefab.indices, gl.STATIC_DRAW);
+
+// picking translate arrow
+var arrow_pick_prefab = createArrow(scale = 2.0, in_r = 0.04, out_r = 0.08);
+console.log(arrow_pick_prefab);
+
+var arrow_pickVBO = gl.createBuffer();
+
+var arrow_pickVAO = gl.createVertexArray();
+
+gl.bindVertexArray(arrow_pickVAO);
+
+gl.bindBuffer(gl.ARRAY_BUFFER, arrow_pickVBO);
+gl.bufferData(gl.ARRAY_BUFFER, arrow_pick_prefab.vertices, gl.STATIC_DRAW);
+
+gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 3 * 4, 0);
+gl.enableVertexAttribArray(0);
+
+var arrow_pickEBO = gl.createBuffer();
+
+gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, arrow_pickEBO);
+gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, arrow_pick_prefab.indices, gl.STATIC_DRAW);
 
 // rotate ring
 var rotate_prefab = createRing();
@@ -164,13 +185,13 @@ function drawTransformGizmo(proj, scale, options)
 
     // z
     gl.uniform3f(color_loc_gizmos, options.tz_color[0], options.tz_color[1], options.tz_color[2]);
-    gl.bindVertexArray(arrowVAO);
+    gl.bindVertexArray(options.translateVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
 
     if (gizmos_shape.normal)
     {
         gl.uniform3f(color_loc_gizmos, options.rz_color[0], options.rz_color[1], options.rz_color[2]);
-        gl.bindVertexArray(options.VAO);
+        gl.bindVertexArray(options.rotateVAO);
         gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
     }
 
@@ -178,13 +199,13 @@ function drawTransformGizmo(proj, scale, options)
     mat4.rotate(model, model, Math.PI / 2.0, vec3.fromValues(-1.0, 0.0, 0.0));
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
     gl.uniform3f(color_loc_gizmos, options.ty_color[0], options.ty_color[1], options.ty_color[2]);
-    gl.bindVertexArray(arrowVAO);
+    gl.bindVertexArray(options.translateVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
 
     if (gizmos_shape.normal)
     {
         gl.uniform3f(color_loc_gizmos, options.ry_color[0], options.ry_color[1], options.ry_color[2]);
-        gl.bindVertexArray(options.VAO);
+        gl.bindVertexArray(options.rotateVAO);
         gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
     }
 
@@ -192,13 +213,13 @@ function drawTransformGizmo(proj, scale, options)
     mat4.rotate(model, model, Math.PI / 2.0, vec3.fromValues(0.0, 1.0, 0.0));
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
     gl.uniform3f(color_loc_gizmos, options.tx_color[0], options.tx_color[1], options.tx_color[2]);
-    gl.bindVertexArray(arrowVAO);
+    gl.bindVertexArray(options.translateVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
 
     if (gizmos_shape.normal)
     {
         gl.uniform3f(color_loc_gizmos, options.rx_color[0], options.rx_color[1], options.rx_color[2]);
-        gl.bindVertexArray(options.VAO);
+        gl.bindVertexArray(options.rotateVAO);
         gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
     }
 
@@ -211,7 +232,8 @@ function drawGizmo(proj)
         return;
 
     var options = {
-        VAO: rotate_washerVAO,
+        rotateVAO: rotate_washerVAO,
+        translateVAO: arrow_pickVAO,
         draw_mode: gl.TRIANGLES,
         length: rotate_washer_prefab.indices.length,
         rx_color: vec3.fromValues(0.0, 1.0, 1.0),
@@ -232,7 +254,8 @@ function drawGizmo(proj)
     drawTransformGizmo(proj, vec3.fromValues(1.0, 1.0, 1.0), options);
 
     options = {
-        VAO: rotateVAO,
+        rotateVAO: rotateVAO,
+        translateVAO: arrowVAO,
         draw_mode: gl.LINES,
         length: rotate_prefab.indices.length,
         rx_color: vec3.fromValues(1.0, 0.36, 0.29),
