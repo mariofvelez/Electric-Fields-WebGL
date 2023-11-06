@@ -529,8 +529,20 @@ var washerEBO = gl.createBuffer();
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, washerEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, washer_prefab.indices, gl.STATIC_DRAW);
 
+var curr_shape_id = 0;
+
+function getShapeByID(id)
+{
+    for (var i = 0; i < shapes.length; ++i)
+        if (shapes[i].id === id)
+            return shapes[i];
+    return null;
+}
+
 function createChargePanel(name)
 {
+    curr_shape_id++;
+
     const controls = document.getElementById("charge-control-container");
     const charge_panel = document.createElement("div");
     charge_panel.className = "charge-panel";
@@ -588,6 +600,7 @@ function addSphere(position, radius, charge)
 
     shapes.push({
         name: "sphere",
+        id: curr_shape_id,
         position: position,
         length: sphere_prefab.indices.length,
         charge: charge,
@@ -605,6 +618,7 @@ function addLineSegment(position_a, position_b, charge)
 
     shapes.push({
         name: "line segment",
+        id: curr_shape_id,
         position_a: position_a,
         position_b: position_b,
         charge: charge,
@@ -633,6 +647,7 @@ function addRing(position, radius, normal, charge)
 
     shapes.push({
         name: "ring",
+        id: curr_shape_id,
         position: position,
         radius: radius,
         normal: normal,
@@ -653,6 +668,7 @@ function addDisc(position, radius, normal, charge)
 
     shapes.push({
         name: "disc",
+        id: curr_shape_id,
         position: position,
         radius: radius,
         normal: normal,
@@ -674,6 +690,7 @@ function addWasher(position, inner, outer, normal, charge)
 
     shapes.push({
         name: "washer",
+        id: curr_shape_id,
         position: position,
         inner: inner,
         outer: outer,
