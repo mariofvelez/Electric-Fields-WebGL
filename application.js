@@ -529,82 +529,62 @@ var washerEBO = gl.createBuffer();
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, washerEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, washer_prefab.indices, gl.STATIC_DRAW);
 
+function createChargePanel(name)
+{
+    const controls = document.getElementById("charge-control-container");
+    const charge_panel = document.createElement("div");
+    charge_panel.className = "charge-panel";
+    controls.appendChild(charge_panel);
+
+    const charge_header = document.createElement("div");
+    charge_header.className = "charge-header";
+    charge_panel.appendChild(charge_header);
+
+    const charge_name = document.createTextNode(name);
+    charge_name.className = "charge-name";
+    charge_header.appendChild(charge_name);
+
+    const delete_icon_container = document.createElement("div");
+    delete_icon_container.className = "delete-icon-container";
+    charge_header.appendChild(delete_icon_container);
+
+    const delete_icon = document.createElement("i");
+    delete_icon.classList = "fa-solid fa-xmark delete-icon";
+    delete_icon_container.appendChild(delete_icon);
+
+    controls.appendChild(document.createElement("hr"));
+
+    return charge_panel;
+}
+
+function createChargeInput(charge_panel, name, value)
+{
+    const charge_input = document.createElement("div");
+    charge_input.className = "charge-input";
+    charge_panel.appendChild(charge_input);
+
+    const charge_input_label = document.createElement("p");
+    charge_input_label.className = "charge-input-label";
+    charge_input_label.innerHTML = name;
+    charge_input.appendChild(charge_input_label);
+
+    const charge_input_box = document.createElement("input");
+    charge_input_box.className = "charge-input-box";
+    charge_input_box.type = "number";
+    charge_input_box.value = value;
+    charge_input.appendChild(charge_input_box);
+
+    return {
+        label: charge_input_label,
+        box: charge_input_box
+    };
+}
 
 function addSphere(position, radius, charge)
 {
-    // creating HTML controls
-    const controls = document.getElementById("charge-control-container");
-    const div = document.createElement("div");
-    controls.appendChild(div);
+    const charge_panel = createChargePanel("Point");
 
-    // X slider
-    const text_x = document.createTextNode("x: ");
-    div.appendChild(text_x);
-
-    const slider_x = document.createElement("input");
-    slider_x.type = "range";
-    slider_x.min = pos_min;
-    slider_x.max = pos_max;
-    slider_x.value = 0;
-    slider_x.step = 0.01;
-    slider_x.id = shapes.length * 3;
-    div.appendChild(slider_x);
-
-    slider_x.oninput = function () {
-        shapes[slider_x.id / 3].position[0] = slider_x.value;
-    }
-
-    // Y slider
-    const text_y = document.createTextNode("y: ");
-    div.appendChild(text_y);
-
-    const slider_y = document.createElement("input");
-    slider_y.type = "range";
-    slider_y.min = pos_min;
-    slider_y.max = pos_max;
-    slider_y.value = 0;
-    slider_y.step = 0.01;
-    slider_y.id = shapes.length * 3 + 1;
-    div.appendChild(slider_y);
-
-    slider_y.oninput = function () {
-        shapes[(slider_y.id - 1) / 3].position[1] = slider_y.value;
-    }
-
-    // Z slider
-    const text_z = document.createTextNode("z: ");
-    div.appendChild(text_z);
-
-    const slider_z = document.createElement("input");
-    slider_z.type = "range";
-    slider_z.min = pos_min;
-    slider_z.max = pos_max;
-    slider_z.value = 0;
-    slider_z.step = 0.01;
-    slider_z.id = shapes.length * 3 + 2;
-    div.appendChild(slider_z);
-
-    slider_z.oninput = function () {
-        shapes[(slider_z.id - 2) / 3].position[2] = slider_z.value;
-    }
-
-    // Charge slider
-    const text_charge = document.createTextNode("Charge: ");
-    div.appendChild(text_charge);
-
-    const slider_charge = document.createElement("input");
-    slider_charge.type = "range";
-    slider_charge.min = -10;
-    slider_charge.max = 10;
-    slider_charge.value = 0;
-    slider_charge.step = 0.5;
-    slider_charge.id = "charge-slider";
-    slider_charge.name = shapes.length;
-    div.appendChild(slider_charge);
-
-    slider_charge.oninput = function () {
-        shapes[slider_charge.name].charge = slider_charge.value;
-    }
+    createChargeInput(charge_panel, "q: ", charge);
 
     shapes.push({
         name: "sphere",
@@ -619,6 +599,10 @@ function addSphere(position, radius, charge)
 
 function addLineSegment(position_a, position_b, charge)
 {
+    const charge_panel = createChargePanel("Line Segment");
+
+    createChargeInput(charge_panel, "q: ", charge);
+
     shapes.push({
         name: "line segment",
         position_a: position_a,
@@ -633,11 +617,20 @@ function addLineSegment(position_a, position_b, charge)
 
 function addPlane(position, normal, charge)
 {
+    const charge_panel = createChargePanel("Plane");
+
+    createChargeInput(charge_panel, "q: ", charge);
+
     updateComputeProgram();
 }
 
 function addRing(position, radius, normal, charge)
 {
+    const charge_panel = createChargePanel("Ring");
+
+    createChargeInput(charge_panel, "q: ", charge);
+    createChargeInput(charge_panel, "radius: ", radius);
+
     shapes.push({
         name: "ring",
         position: position,
@@ -653,6 +646,11 @@ function addRing(position, radius, normal, charge)
 
 function addDisc(position, radius, normal, charge)
 {
+    const charge_panel = createChargePanel("Disc");
+
+    createChargeInput(charge_panel, "q: ", charge);
+    createChargeInput(charge_panel, "radius: ", radius);
+
     shapes.push({
         name: "disc",
         position: position,
@@ -668,6 +666,12 @@ function addDisc(position, radius, normal, charge)
 
 function addWasher(position, inner, outer, normal, charge)
 {
+    const charge_panel = createChargePanel("Washer");
+
+    createChargeInput(charge_panel, "q: ", charge);
+    createChargeInput(charge_panel, "inner: ", inner);
+    createChargeInput(charge_panel, "outer: ", outer);
+
     shapes.push({
         name: "washer",
         position: position,

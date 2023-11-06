@@ -172,3 +172,91 @@ void main() // old compute main function with test charges
     transform[2] = vec4(z, 0.0);//vec4(z, vpos.z);
     transform[3] = vec4(vpos, 1.0);
 }
+
+function addSphere(position, radius, charge) // old HTML elements, not using sliders anymore
+{
+    // creating HTML controls
+    const controls = document.getElementById("charge-control-container");
+    const div = document.createElement("div");
+    div.className = "charge-panel";
+    controls.appendChild(div);
+
+    // X slider
+    const text_x = document.createTextNode("x: ");
+    div.appendChild(text_x);
+
+    const slider_x = document.createElement("input");
+    slider_x.type = "range";
+    slider_x.min = pos_min;
+    slider_x.max = pos_max;
+    slider_x.value = 0;
+    slider_x.step = 0.01;
+    slider_x.id = shapes.length * 3;
+    div.appendChild(slider_x);
+
+    slider_x.oninput = function () {
+        shapes[slider_x.id / 3].position[0] = slider_x.value;
+    }
+
+    // Y slider
+    const text_y = document.createTextNode("y: ");
+    div.appendChild(text_y);
+
+    const slider_y = document.createElement("input");
+    slider_y.type = "range";
+    slider_y.min = pos_min;
+    slider_y.max = pos_max;
+    slider_y.value = 0;
+    slider_y.step = 0.01;
+    slider_y.id = shapes.length * 3 + 1;
+    div.appendChild(slider_y);
+
+    slider_y.oninput = function () {
+        shapes[(slider_y.id - 1) / 3].position[1] = slider_y.value;
+    }
+
+    // Z slider
+    const text_z = document.createTextNode("z: ");
+    div.appendChild(text_z);
+
+    const slider_z = document.createElement("input");
+    slider_z.type = "range";
+    slider_z.min = pos_min;
+    slider_z.max = pos_max;
+    slider_z.value = 0;
+    slider_z.step = 0.01;
+    slider_z.id = shapes.length * 3 + 2;
+    div.appendChild(slider_z);
+
+    slider_z.oninput = function () {
+        shapes[(slider_z.id - 2) / 3].position[2] = slider_z.value;
+    }
+
+    // Charge slider
+    const text_charge = document.createTextNode("Charge: ");
+    div.appendChild(text_charge);
+
+    const slider_charge = document.createElement("input");
+    slider_charge.type = "range";
+    slider_charge.min = -10;
+    slider_charge.max = 10;
+    slider_charge.value = 0;
+    slider_charge.step = 0.5;
+    slider_charge.id = "charge-slider";
+    slider_charge.name = shapes.length;
+    div.appendChild(slider_charge);
+
+    slider_charge.oninput = function () {
+        shapes[slider_charge.name].charge = slider_charge.value;
+    }
+
+    shapes.push({
+        name: "sphere",
+        position: position,
+        length: sphere_prefab.indices.length,
+        charge: charge,
+        mVAO: sphereVAO
+    });
+
+    updateComputeProgram();
+}

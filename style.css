@@ -1,0 +1,54 @@
+.charge-panel {
+    background-color: slategray;
+    border-radius: 0.5rem;
+}
+
+#selected-charge {
+    border: solid white 2px;
+}
+
+.charge-header {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    border: solid white 2px;
+    border-radius: 0.5rem;
+    background-color: gray;
+}
+
+.charge-name {
+    display: inline;
+    user-select: none;
+}
+
+.delete-icon-container {
+    text-align: end;
+    position: relative;
+}
+
+.delete-icon {
+    display: inline;
+    cursor: pointer;
+    position: absolute;
+    right: 0.3rem;
+    top: -1.2rem;
+}
+
+.charge-input {
+    display: inline-block;
+    width: 10rem;
+    text-align: end;
+    padding: 5px;
+}
+
+.charge-input-label {
+    display: inline;
+    cursor: ew-resize;
+    user-select: none;
+}
+
+.charge-input-box {
+    width: 50%;
+    display: inline;
+    border-radius: 0.5rem;
+}
