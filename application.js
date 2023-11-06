@@ -539,6 +539,37 @@ function getShapeByID(id)
     return null;
 }
 
+var updating_input = false;
+var updating_id = -1;
+var updating_box = null;
+document.addEventListener("mouseup", (e) => {
+    updating_input = false;
+    updating_id = -1;
+    updating_box = null;
+}, false);
+
+var screen_mouse_x = 0;
+var screen_mouse_y = 0;
+var prev_screen_mouse_x = 0;
+var prev_screen_mouse_y = 0;
+
+document.addEventListener("mousemove", (e) => {
+    prev_screen_mouse_x = screen_mouse_x;
+    prev_screen_mouse_y = screen_mouse_y;
+    screen_mouse_x = e.clientX;
+    screen_mouse_y = e.clientY;
+
+    if (updating_input)
+    {
+        const amount = screen_mouse_x - prev_screen_mouse_x;
+        const curr_value = (Number)(updating_box.value);
+        const new_value = curr_value + amount * 0.1;
+        updating_box.value = new_value;
+        updating_box.onchange();
+    }
+
+}, false);
+
 function createChargePanel(name)
 {
     curr_shape_id++;
@@ -546,6 +577,7 @@ function createChargePanel(name)
     const controls = document.getElementById("charge-control-container");
     const charge_panel = document.createElement("div");
     charge_panel.className = "charge-panel";
+    charge_panel.name = curr_shape_id;
     controls.appendChild(charge_panel);
 
     const charge_header = document.createElement("div");
@@ -586,6 +618,12 @@ function createChargeInput(charge_panel, name, value)
     charge_input_box.value = value;
     charge_input.appendChild(charge_input_box);
 
+    charge_input_label.onmousedown = function () {
+        updating_input = true;
+        updating_id = charge_panel.name;
+        updating_box = charge_input_box;
+    };
+
     return {
         label: charge_input_label,
         box: charge_input_box
@@ -596,7 +634,12 @@ function addSphere(position, radius, charge)
 {
     const charge_panel = createChargePanel("Point");
 
-    createChargeInput(charge_panel, "q: ", charge);
+    const charge_input = createChargeInput(charge_panel, "q: ", charge);
+    charge_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.charge = (Number)(charge_input.box.value);
+    };
 
     shapes.push({
         name: "sphere",
@@ -614,7 +657,12 @@ function addLineSegment(position_a, position_b, charge)
 {
     const charge_panel = createChargePanel("Line Segment");
 
-    createChargeInput(charge_panel, "q: ", charge);
+    const charge_input = createChargeInput(charge_panel, "q: ", charge);
+    charge_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.charge = (Number)(charge_input.box.value);
+    };
 
     shapes.push({
         name: "line segment",
@@ -633,7 +681,12 @@ function addPlane(position, normal, charge)
 {
     const charge_panel = createChargePanel("Plane");
 
-    createChargeInput(charge_panel, "q: ", charge);
+    const charge_input = createChargeInput(charge_panel, "q: ", charge);
+    charge_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.charge = (Number)(charge_input.box.value);
+    };
 
     updateComputeProgram();
 }
@@ -642,8 +695,18 @@ function addRing(position, radius, normal, charge)
 {
     const charge_panel = createChargePanel("Ring");
 
-    createChargeInput(charge_panel, "q: ", charge);
-    createChargeInput(charge_panel, "radius: ", radius);
+    const charge_input = createChargeInput(charge_panel, "q: ", charge);
+    charge_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.charge = (Number)(charge_input.box.value);
+    };
+    const radius_input = createChargeInput(charge_panel, "radius: ", radius);
+    radius_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.radius = (Number)(radius_input.box.value);
+    };
 
     shapes.push({
         name: "ring",
@@ -663,8 +726,19 @@ function addDisc(position, radius, normal, charge)
 {
     const charge_panel = createChargePanel("Disc");
 
-    createChargeInput(charge_panel, "q: ", charge);
-    createChargeInput(charge_panel, "radius: ", radius);
+    const charge_input = createChargeInput(charge_panel, "q: ", charge);
+    charge_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.charge = (Number)(charge_input.box.value);
+    };
+    const radius_input = createChargeInput(charge_panel, "radius: ", radius);
+    radius_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.radius = (Number)(radius_input.box.value);
+        console.log(shape.radius);
+    };
 
     shapes.push({
         name: "disc",
@@ -684,9 +758,24 @@ function addWasher(position, inner, outer, normal, charge)
 {
     const charge_panel = createChargePanel("Washer");
 
-    createChargeInput(charge_panel, "q: ", charge);
-    createChargeInput(charge_panel, "inner: ", inner);
-    createChargeInput(charge_panel, "outer: ", outer);
+    const charge_input = createChargeInput(charge_panel, "q: ", charge);
+    charge_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.charge = (Number)(charge_input.box.value);
+    };
+    const inner_input = createChargeInput(charge_panel, "inner: ", inner);
+    inner_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.inner = (Number)(inner_input.box.value);
+    };
+    const outer_input = createChargeInput(charge_panel, "outer: ", outer);
+    outer_input.box.onchange = function ()
+    {
+        const shape = getShapeByID(charge_panel.name);
+        shape.outer = (Number)(outer_input.box.value);
+    };
 
     shapes.push({
         name: "washer",
