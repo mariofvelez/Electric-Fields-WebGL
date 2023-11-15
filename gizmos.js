@@ -228,8 +228,18 @@ function drawTransformGizmo(proj, scale, options)
 
 function drawGizmo(proj)
 {
-    if (!gizmos_shape)
+    if (!gizmos_shape || gizmos_shape === null)
+    {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
+        gl.viewport(0, 0, canvas.width, canvas.height);
+
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
         return;
+    }
 
     var options = {
         rotateVAO: rotate_washerVAO,

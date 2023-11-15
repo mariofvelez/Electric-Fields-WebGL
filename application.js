@@ -555,6 +555,33 @@ function removeShapeByID(id, panel)
     // remove html element
     const controls = document.getElementById("charge-control-container");
     controls.removeChild(panel);
+
+    // check if this shape was selected
+    if (gizmos_shape.id === id)
+        gizmos_shape = null;
+}
+
+function setSelectedShape(id)
+{
+    const shape = getShapeByID(id);
+    if (shape === null)
+        return;
+
+    // set gizmos shape
+    gizmos_shape = shape;
+
+    // set charge panel HTML element id to "selected-charge"
+    const controls = document.getElementById("charge-control-container");
+    for (var i = 0; i < controls.children.length; ++i)
+    {
+        const child = controls.children[i];
+        if (child.name === id)
+        {
+            child.id = "selected-charge";
+        }
+        else
+            child.id = null;
+    }
 }
 
 var updating_input = false;
@@ -597,6 +624,9 @@ function createChargePanel(name)
     charge_panel.className = "charge-panel";
     charge_panel.name = curr_shape_id;
     controls.appendChild(charge_panel);
+    charge_panel.addEventListener("click", (e) => {
+        setSelectedShape(charge_panel.name);
+    }, false);
 
     const charge_header = document.createElement("div");
     charge_header.className = "charge-header";
@@ -1357,8 +1387,6 @@ function draw(time)
     gl.drawElementsInstanced(gl.TRIANGLES, arrow.indices.length, gl.UNSIGNED_INT, 0, grid.matrices.length / (16 + 3));
 
     // gizmos
-
-    gizmos_shape = shapes[0];
     drawGizmo(viewProj);
 
     requestAnimationFrame(draw);
