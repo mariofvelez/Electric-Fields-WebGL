@@ -1,6 +1,7 @@
 .charge-panel {
     background-color: slategray;
     border-radius: 0.5rem;
+    margin-top: 1rem;
 }
 
 #selected-charge {

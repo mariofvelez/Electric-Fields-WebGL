@@ -539,6 +539,24 @@ function getShapeByID(id)
     return null;
 }
 
+function removeShapeByID(id, panel)
+{
+    // remove shape from array
+    var index = -1;
+    for (var i = 0; i < shapes.length; ++i)
+        if (shapes[i].id === id)
+            index = i;
+    if (index !== -1)
+        shapes.splice(index, 1);
+
+    // update shader
+    updateComputeProgram();
+
+    // remove html element
+    const controls = document.getElementById("charge-control-container");
+    controls.removeChild(panel);
+}
+
 var updating_input = false;
 var updating_id = -1;
 var updating_box = null;
@@ -591,12 +609,13 @@ function createChargePanel(name)
     const delete_icon_container = document.createElement("div");
     delete_icon_container.className = "delete-icon-container";
     charge_header.appendChild(delete_icon_container);
+    delete_icon_container.addEventListener("click", (e) => {
+        removeShapeByID(charge_panel.name, charge_panel);
+    }, false);
 
     const delete_icon = document.createElement("i");
     delete_icon.classList = "fa-solid fa-xmark delete-icon";
     delete_icon_container.appendChild(delete_icon);
-
-    controls.appendChild(document.createElement("hr"));
 
     return charge_panel;
 }
