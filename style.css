@@ -9,7 +9,7 @@
 }
 
 #selected-charge {
-    border: solid white 2px;
+    box-shadow: 0px 0px 1rem #98e6e2;
 }
 
 .charge-header {

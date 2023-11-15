@@ -855,6 +855,9 @@ function clearShapes(ask_clear)
         controls.innerHTML = "";
 
         shapes.length = 0;
+
+        gizmos_shape = null;
+
         updateComputeProgram();
     }
 }
