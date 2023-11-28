@@ -1069,20 +1069,23 @@ console.log(model_loc);
 var prev_x = 0;
 var prev_y = 0;
 var is_mouse_down = false;
+var prev_mouse_down = false;
 var picking = false;
 var picking_id = 0;
 
-canvas.addEventListener("mousemove", (e) => {
+function mouseMove(offsetX, offsetY)
+{
+    console.log(offsetX + ", " + offsetY);
 
-    var dx = e.offsetX - prev_x;
-    var dy = e.offsetY - prev_y;
+    var dx = offsetX - prev_x;
+    var dy = offsetY - prev_y;
 
     if (is_mouse_down)
     {
         if (picking)
         {
-            var px = e.offsetX * 2.0 / canvas.clientWidth - 1.0; // normalized device coordinates
-            var py = e.offsetY * 2.0 / canvas.clientHeight - 1.0;
+            var px = offsetX * 2.0 / canvas.clientWidth - 1.0; // normalized device coordinates
+            var py = offsetY * 2.0 / canvas.clientHeight - 1.0;
 
             // creating mouse pointer ray
             mouse_ray.pos = getCameraPos(theta, phi);
@@ -1114,20 +1117,30 @@ canvas.addEventListener("mousemove", (e) => {
         }
     }
 
-    prev_x = e.offsetX;
-    prev_y = e.offsetY;
+    prev_x = offsetX;
+    prev_y = offsetY;
+};
 
+canvas.addEventListener("touchmove", (e) => {
+    mouseMove(e.touches[0].clientX, e.touches[0].clientY);
 }, false);
 
-canvas.addEventListener("mousedown", (e) => {
+canvas.addEventListener("mousemove", (e) => {
+    mouseMove(e.offsetX, e.offsetY);
+}, false);
+
+function mouseDown(offsetX, offsetY)
+{
+    prev_x = offsetX;
+    prev_y = offsetY;
 
     is_mouse_down = true;
     canvas.style.cursor = "grabbing";
 
     // check for picking
     gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
-    var mx = e.offsetX;
-    var my = e.offsetY;
+    var mx = offsetX;
+    var my = offsetY;
 
     const px = mx * canvas.width / canvas.clientWidth;
     const py = canvas.height - my * canvas.height / canvas.clientHeight - 1;
@@ -1139,18 +1152,35 @@ canvas.addEventListener("mousedown", (e) => {
     picking = picking_id !== -16777216 && picking_id !== 0;
 
     console.log(picking_id);
+}
 
+canvas.addEventListener("mousedown", (e) => {
+    mouseDown(e.offsetX, e.offsetY);
 }, false);
 
-canvas.addEventListener("mouseup", (e) => {
+canvas.addEventListener("touchstart", (e) => {
+    mouseDown(e.touches[0].clientX, e.touches[0].clientY);
+}, false);
 
+function mouseUp()
+{
     is_mouse_down = false;
     picking = false;
     current_gizmo_action = "none";
     canvas.style.cursor = "auto";
     gizmosMouseUp();
+}
 
+canvas.addEventListener("mouseup", (e) => {
+    mouseUp();
 }, false);
+
+canvas.addEventListener("touchend", (e) => {
+    mouseUp();
+}, false);
+
+document.documentElement.style.overflow = 'hidden';  // firefox, chrome
+document.body.scroll = "no"; // ie only
 
 window.addEventListener("resize", (e) => {
 
