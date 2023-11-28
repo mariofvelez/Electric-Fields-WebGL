@@ -1068,15 +1068,29 @@ console.log(model_loc);
 // input
 var prev_x = 0;
 var prev_y = 0;
+var prev_x1 = 0; // touch points for zooming
+var prev_y1 = 0;
 var is_mouse_down = false;
 var prev_mouse_down = false;
 var picking = false;
 var picking_id = 0;
 
+function zoom(zoom_amount)
+{
+    cam_dist -= zoom_amount;
+    if (cam_dist < 1.0)
+        cam_dist = 1.0;
+    if (cam_dist > 20.0)
+        cam_dist = 20.0;
+    updateCamera(theta, phi);
+}
+
+canvas.addEventListener("onscroll", (e) => {
+    console.log(e);
+}, false);
+
 function mouseMove(offsetX, offsetY)
 {
-    console.log(offsetX + ", " + offsetY);
-
     var dx = offsetX - prev_x;
     var dy = offsetY - prev_y;
 
@@ -1121,8 +1135,46 @@ function mouseMove(offsetX, offsetY)
     prev_y = offsetY;
 };
 
+var prev_dist = 0;
+
 canvas.addEventListener("touchmove", (e) => {
-    mouseMove(e.touches[0].clientX, e.touches[0].clientY);
+    if(e.touches.length === 1)
+        mouseMove(e.touches[0].clientX - canvas.getBoundingClientRect().left, e.touches[0].clientY);
+    else if(e.touches.length === 2)
+    {
+        // zooming
+        e.preventDefault();
+
+        var x1 = e.touches[0].clientX - canvas.getBoundingClientRect().left;
+        var y1 = e.touches[0].clientY;
+        var x2 = e.touches[1].clientX - canvas.getBoundingClientRect().left;
+        var y2 = e.touches[1].clientY;
+
+        var dist = Math.hypot(x2 - x1, y2 - y1);
+
+        var dx1 = x1 - prev_x;
+        var dy1 = y1 - prev_y;
+        var dx2 = x2 - prev_x1;
+        var dy2 = y2 - prev_y1;
+
+        var zoom_x = dx1 - dx2;
+        var zoom_y = dy1 - dy2;
+
+        var zoom_amount = Math.hypot(zoom_x, zoom_y);
+        if (dist < prev_dist)
+            zoom_amount *= -1;
+
+        if(prev_dist !== 0)
+            zoom(zoom_amount * 0.02);
+
+        prev_x = x1;
+        prev_y = y1;
+        prev_x1 = x2;
+        prev_y1 = y2;
+
+        prev_dist = dist;
+
+    }
 }, false);
 
 canvas.addEventListener("mousemove", (e) => {
@@ -1131,6 +1183,8 @@ canvas.addEventListener("mousemove", (e) => {
 
 function mouseDown(offsetX, offsetY)
 {
+    console.log(offsetX + ", " + offsetY);
+
     prev_x = offsetX;
     prev_y = offsetY;
 
@@ -1142,8 +1196,8 @@ function mouseDown(offsetX, offsetY)
     var mx = offsetX;
     var my = offsetY;
 
-    const px = mx * canvas.width / canvas.clientWidth;
-    const py = canvas.height - my * canvas.height / canvas.clientHeight - 1;
+    const px = mx * canvas.clientWidth / canvas.clientWidth;
+    const py = canvas.clientHeight - my * canvas.clientHeight / canvas.clientHeight - 1;
     const picking_data = new Uint8Array(4);
     gl.readPixels(px, py, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, picking_data);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -1159,7 +1213,13 @@ canvas.addEventListener("mousedown", (e) => {
 }, false);
 
 canvas.addEventListener("touchstart", (e) => {
-    mouseDown(e.touches[0].clientX, e.touches[0].clientY);
+    mouseDown(e.touches[0].clientX - canvas.getBoundingClientRect().left, e.touches[0].clientY);
+    if (e.touches.length > 1)
+    {
+        prev_x1 = e.touches[1].clientX - canvas.getBoundingClientRect().left;
+        prev_x2 = e.touches[1].clientY;
+        prev_dist = 0;
+    }
 }, false);
 
 function mouseUp()
