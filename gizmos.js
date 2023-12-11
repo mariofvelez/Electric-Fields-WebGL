@@ -110,47 +110,6 @@ var rotate_washerEBO = gl.createBuffer();
 gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, rotate_washerEBO);
 gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, rotate_washer_prefab.indices, gl.STATIC_DRAW);
 
-// gizmo id texture
-const gizmo_texture = gl.createTexture();
-gl.bindTexture(gl.TEXTURE_2D, gizmo_texture);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-// depth buffer
-const gizmo_depth_buffer = gl.createRenderbuffer();
-gl.bindRenderbuffer(gl.RENDERBUFFER, gizmo_depth_buffer);
-
-// up vector
-var up = vec3.fromValues(0.4937, -3.193, 0.7173);
-vec3.normalize(up, up);
-
-function setGizmosFrameBufferAttachmentSizes(width, height)
-{
-    gl.bindTexture(gl.TEXTURE_2D, gizmo_texture);
-
-    const level = 0;
-    const internalFormat = gl.RGBA;
-    const border = 0;
-    const format = gl.RGBA;
-    const type = gl.UNSIGNED_BYTE;
-    const data = null;
-    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, data);
-
-    gl.bindRenderbuffer(gl.RENDERBUFFER, gizmo_depth_buffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
-}
-
-// create and bind framebuffer
-const gizmo_fb = gl.createFramebuffer();
-gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
-
-// attach texture
-gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, gizmo_texture, 0);
-
-// make depth buffer
-gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, gizmo_depth_buffer);
-
 var gizmos_shape;
 
 var current_gizmo_action = "none";
@@ -177,20 +136,20 @@ function drawTransformGizmo(proj, scale, options)
 
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
     gl.uniformMatrix4fv(proj_loc_gizmos, false, proj);
-    gl.uniform3f(color_loc_gizmos, 0.5, 0.5, 0.5);
+    gl.uniform4f(color_loc_gizmos, 0.5, 0.5, 0.5, 1.0);
 
     gl.drawElements(gl.TRIANGLES, box_prefab.indices.length, gl.UNSIGNED_INT, 0);
 
     gl.disable(gl.CULL_FACE);
 
     // z
-    gl.uniform3f(color_loc_gizmos, options.tz_color[0], options.tz_color[1], options.tz_color[2]);
+    gl.uniform4f(color_loc_gizmos, options.tz_color[0], options.tz_color[1], options.tz_color[2], 1.0);
     gl.bindVertexArray(options.translateVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
 
     if (gizmos_shape.normal)
     {
-        gl.uniform3f(color_loc_gizmos, options.rz_color[0], options.rz_color[1], options.rz_color[2]);
+        gl.uniform4f(color_loc_gizmos, options.rz_color[0], options.rz_color[1], options.rz_color[2], 1.0);
         gl.bindVertexArray(options.rotateVAO);
         gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
     }
@@ -198,13 +157,13 @@ function drawTransformGizmo(proj, scale, options)
     // y
     mat4.rotate(model, model, Math.PI / 2.0, vec3.fromValues(-1.0, 0.0, 0.0));
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
-    gl.uniform3f(color_loc_gizmos, options.ty_color[0], options.ty_color[1], options.ty_color[2]);
+    gl.uniform4f(color_loc_gizmos, options.ty_color[0], options.ty_color[1], options.ty_color[2], 1.0);
     gl.bindVertexArray(options.translateVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
 
     if (gizmos_shape.normal)
     {
-        gl.uniform3f(color_loc_gizmos, options.ry_color[0], options.ry_color[1], options.ry_color[2]);
+        gl.uniform4f(color_loc_gizmos, options.ry_color[0], options.ry_color[1], options.ry_color[2], 1.0);
         gl.bindVertexArray(options.rotateVAO);
         gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
     }
@@ -212,13 +171,13 @@ function drawTransformGizmo(proj, scale, options)
     // x
     mat4.rotate(model, model, Math.PI / 2.0, vec3.fromValues(0.0, 1.0, 0.0));
     gl.uniformMatrix4fv(model_loc_gizmos, false, model);
-    gl.uniform3f(color_loc_gizmos, options.tx_color[0], options.tx_color[1], options.tx_color[2]);
+    gl.uniform4f(color_loc_gizmos, options.tx_color[0], options.tx_color[1], options.tx_color[2], 1.0);
     gl.bindVertexArray(options.translateVAO);
     gl.drawElements(gl.TRIANGLES, arrow_prefab.indices.length, gl.UNSIGNED_INT, 0);
 
     if (gizmos_shape.normal)
     {
-        gl.uniform3f(color_loc_gizmos, options.rx_color[0], options.rx_color[1], options.rx_color[2]);
+        gl.uniform4f(color_loc_gizmos, options.rx_color[0], options.rx_color[1], options.rx_color[2], 1.0);
         gl.bindVertexArray(options.rotateVAO);
         gl.drawElements(options.draw_mode, options.length, gl.UNSIGNED_INT, 0);
     }
@@ -226,17 +185,63 @@ function drawTransformGizmo(proj, scale, options)
     gl.enable(gl.CULL_FACE);
 }
 
-function drawGizmo(proj)
+function drawGizmoPicking(proj)
+{
+    var options = {
+        rotateVAO: rotate_washerVAO,
+        translateVAO: arrow_pickVAO,
+        draw_mode: gl.TRIANGLES,
+        length: rotate_washer_prefab.indices.length,
+        rx_color: vec3.fromValues(0.0, 1.0, 1.0),
+        ry_color: vec3.fromValues(1.0, 0.0, 1.0),
+        rz_color: vec3.fromValues(1.0, 1.0, 0.0),
+        tx_color: vec3.fromValues(1.0, 0.0, 0.0),
+        ty_color: vec3.fromValues(0.0, 1.0, 0.0),
+        tz_color: vec3.fromValues(0.0, 0.0, 1.0)
+    };
+
+    // draw to gizmo picking framebuffer
+    drawTransformGizmo(proj, vec3.fromValues(1.0, 1.0, 1.0), options);
+}
+
+function drawGizmoScreen(proj)
+{
+    options = {
+        rotateVAO: rotateVAO,
+        translateVAO: arrowVAO,
+        draw_mode: gl.LINES,
+        length: rotate_prefab.indices.length,
+        rx_color: vec3.fromValues(1.0, 0.36, 0.29),
+        ry_color: vec3.fromValues(0.5843, 1.0, 0.29),
+        rz_color: vec3.fromValues(0.29, 0.5137, 1.0),
+        tx_color: vec3.fromValues(1.0, 0.0, 0.0),
+        ty_color: vec3.fromValues(0.0, 1.0, 0.0),
+        tz_color: vec3.fromValues(0.0, 0.0, 1.0)
+    };
+
+    drawTransformGizmo(proj, vec3.fromValues(1.0, 1.0, 1.0), options);
+}
+
+function isGizmoActive()
 {
     if (!gizmos_shape || gizmos_shape === null)
     {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
+        return false;
+    }
+    return true;
+}
+
+function drawGizmo(proj, fb)
+{
+    if (!gizmos_shape || gizmos_shape === null)
+    {
+        /*gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
         gl.viewport(0, 0, canvas.width, canvas.height);
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);*/
 
         return;
     }
@@ -255,12 +260,6 @@ function drawGizmo(proj)
     };
 
     // draw to gizmo picking framebuffer
-    gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
-    gl.viewport(0, 0, canvas.width, canvas.height);
-
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
     drawTransformGizmo(proj, vec3.fromValues(1.0, 1.0, 1.0), options);
 
     options = {

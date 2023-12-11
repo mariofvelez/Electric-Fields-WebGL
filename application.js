@@ -1,7 +1,6 @@
 gl.clearColor(0.1, 0.1, 0.1, 1.0);
 
 gl.viewport(0, 0, canvas.width, canvas.height);
-setGizmosFrameBufferAttachmentSizes(canvas.width, canvas.height);
 gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
 var lg_nodes_loc;
@@ -346,6 +345,8 @@ var grid_program = createProgram("#GridVertex-shader", "#GridFragment-shader");
 
 var arrow_program = createProgram("#ArrowVertex-shader", "#ArrowFragment-shader");
 
+var picking_program = createProgram("#Vertex-shader", "#PickingFragment-shader");
+
 var arrow_compute_program;
 var arrow_compute_vertex_source = "#ArrowComputeVertex-shader";
 var arrow_compute_fragment_source = "#ArrowComputeFragment-shader";
@@ -388,6 +389,11 @@ var model_loc_grid = gl.getUniformLocation(grid_program, "uModel");
 
 var proj_loc_arrow = gl.getUniformLocation(arrow_program, "uViewProjection");
 var model_loc_arrow = gl.getUniformLocation(arrow_program, "uModel");
+
+var proj_loc_picking = gl.getUniformLocation(picking_program, "uViewProjection");
+var model_loc_picking = gl.getUniformLocation(picking_program, "uModel");
+var radius_loc_picking = gl.getUniformLocation(picking_program, "radius");
+var color_loc_picking = gl.getUniformLocation(picking_program, "uColor");
 
 var grid_loc_arrow_compute;
 
@@ -563,6 +569,20 @@ function removeShapeByID(id, panel)
 
 function setSelectedShape(id)
 {
+    if (id === -16777216 || id === 0) // deselect
+    {
+        gizmos_shape = null;
+
+        const controls = document.getElementById("charge-control-container");
+        for (var i = 0; i < controls.children.length; ++i)
+        {
+            const child = controls.children[i];
+            child.id = null;
+        }
+
+        return;
+    }
+
     const shape = getShapeByID(id);
     if (shape === null)
         return;
@@ -1192,7 +1212,7 @@ function mouseDown(offsetX, offsetY)
     canvas.style.cursor = "grabbing";
 
     // check for picking
-    gl.bindFramebuffer(gl.FRAMEBUFFER, gizmo_fb);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, picking_fb);
     var mx = offsetX;
     var my = offsetY;
 
@@ -1203,9 +1223,14 @@ function mouseDown(offsetX, offsetY)
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     picking_id = picking_data[0] + (picking_data[1] << 8) + (picking_data[2] << 16) + (picking_data[3] << 24);
 
-    picking = picking_id !== -16777216 && picking_id !== 0;
+    picking = (picking_id < 0 && picking_id !== -16777216);
 
-    console.log(picking_id);
+    console.log("picking id: " + picking_id);
+
+    if (picking_id >= 0 || picking_id === -16777216)
+    {
+        setSelectedShape(picking_id);
+    }
 }
 
 canvas.addEventListener("mousedown", (e) => {
@@ -1249,7 +1274,7 @@ window.addEventListener("resize", (e) => {
     canvas.height = window.innerHeight - 20;
 
     gl.viewport(0, 0, canvas.width, canvas.height);
-    setGizmosFrameBufferAttachmentSizes(canvas.width, canvas.height);
+    setPickingFrameBufferAttachmentSizes(canvas.width, canvas.height);
 
     mat4.perspective(proj, Math.PI / 2.0, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.1, far_plane);
     mat4.multiply(viewProj, proj, view);
@@ -1262,17 +1287,54 @@ window.addEventListener("resize", (e) => {
 gl.enable(gl.DEPTH_TEST);
 gl.enable(gl.CULL_FACE);
 
+// picking buffer
+const picking_texture = gl.createTexture();
+gl.bindTexture(gl.TEXTURE_2D, picking_texture);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+// depth buffer
+const picking_depth_buffer = gl.createRenderbuffer();
+gl.bindRenderbuffer(gl.RENDERBUFFER, picking_depth_buffer);
+
+// up vector
+var up = vec3.fromValues(0.4937, -3.193, 0.7173);
+vec3.normalize(up, up);
+
+function setPickingFrameBufferAttachmentSizes(width, height)
+{
+    gl.bindTexture(gl.TEXTURE_2D, picking_texture);
+
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const border = 0;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+    const data = null;
+    gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, width, height, border, format, type, data);
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, picking_depth_buffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height);
+}
+
+// create and bind picking framebuffer
+const picking_fb = gl.createFramebuffer();
+gl.bindFramebuffer(gl.FRAMEBUFFER, picking_fb);
+
+// attach texture
+gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, picking_texture, 0);
+
+// make depth buffer
+gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, picking_depth_buffer);
+
+setPickingFrameBufferAttachmentSizes(canvas.width, canvas.height);
+
 var up = vec3.fromValues(0.134, -0.8251, 0.3117);
 vec3.normalize(up, up);
 
-function draw(time)
+function drawShapes()
 {
-    var seconds = time * 0.001;
-
-    gl.clearColor(0.1, 0.1, 0.1, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // shapes
     gl.useProgram(program);
 
     gl.uniformMatrix4fv(proj_loc, false, viewProj);
@@ -1404,6 +1466,139 @@ function draw(time)
                 }
         }
     }
+}
+
+function drawPickingShapes()
+{
+    gl.useProgram(picking_program);
+
+    gl.uniformMatrix4fv(proj_loc_picking, false, viewProj);
+
+    for (var i = 0; i < shapes.length; ++i)
+    {
+        const shape_id = shapes[i].id;
+
+        const id_color = [
+            ((shape_id >> 0) & 0xFF) / 0xFF,
+            ((shape_id >> 8) & 0xFF) / 0xFF,
+            ((shape_id >> 16) & 0xFF) / 0xFF,
+            ((shape_id >> 24) & 0xFF) / 0xFF,
+        ];
+
+        gl.uniform4f(color_loc_picking, id_color[0], id_color[1], id_color[2], id_color[3]);
+
+        var model = mat4.create();
+        switch (shapes[i].name)
+        {
+            case "sphere":
+                {
+                    mat4.scalar.translate(model, model, shapes[i].position);
+                    gl.uniformMatrix4fv(model_loc_picking, false, model);
+
+                    gl.uniform1f(radius_loc_picking, 1.0);
+
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.TRIANGLES, shapes[i].length, gl.UNSIGNED_INT, 0);
+                }
+                break;
+            case "line segment":
+                {
+                    gl.uniformMatrix4fv(model_loc_picking, false, model);
+
+                    // set line segment buffer positions
+                    line_segment_prefab.vertices[0] = shapes[i].position_a[0];
+                    line_segment_prefab.vertices[1] = shapes[i].position_a[1];
+                    line_segment_prefab.vertices[2] = shapes[i].position_a[2];
+                    line_segment_prefab.vertices[3] = shapes[i].position_b[0];
+                    line_segment_prefab.vertices[4] = shapes[i].position_b[1];
+                    line_segment_prefab.vertices[5] = shapes[i].position_b[2];
+
+                    gl.bindBuffer(gl.ARRAY_BUFFER, line_segmentVBO);
+                    gl.bufferData(gl.ARRAY_BUFFER, line_segment_prefab.vertices, gl.STATIC_DRAW);
+
+                    gl.uniform1f(radius_loc_picking, 1.0);
+
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
+                }
+                break;
+            case "plane":
+                {
+
+                }
+                break;
+            case "ring":
+                {
+                    var target = vec3.clone(shapes[i].position);
+                    vec3.add(target, target, shapes[i].normal);
+                    mat4.lookAt(model, shapes[i].position, target, up);
+
+                    mat4.scalar.invert(model, model);
+
+                    gl.uniformMatrix4fv(model_loc_picking, false, model);
+
+                    gl.uniform1f(radius_loc_picking, shapes[i].radius);
+
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.LINES, shapes[i].length, gl.UNSIGNED_INT, 0);
+                }
+                break;
+            case "disc":
+                {
+                    gl.disable(gl.CULL_FACE);
+
+                    var target = vec3.clone(shapes[i].position);
+                    vec3.add(target, target, shapes[i].normal);
+                    mat4.lookAt(model, shapes[i].position, target, up);
+
+                    mat4.scalar.invert(model, model);
+
+                    gl.uniformMatrix4fv(model_loc_picking, false, model);
+
+                    gl.uniform1f(radius_loc_picking, shapes[i].radius);
+
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.TRIANGLES, shapes[i].length, gl.UNSIGNED_INT, 0);
+
+                    gl.enable(gl.CULL_FACE);
+                }
+                break;
+            case "washer":
+                {
+                    gl.disable(gl.CULL_FACE);
+
+                    updateWasher(washer_prefab.vertices, shapes[i].inner, shapes[i].outer);
+                    gl.bindBuffer(gl.ARRAY_BUFFER, washerVBO);
+                    gl.bufferData(gl.ARRAY_BUFFER, washer_prefab.vertices, gl.DYNAMIC_DRAW);
+
+                    var target = vec3.clone(shapes[i].position);
+                    vec3.add(target, target, shapes[i].normal);
+                    mat4.lookAt(model, shapes[i].position, target, up);
+
+                    mat4.scalar.invert(model, model);
+
+                    gl.uniformMatrix4fv(model_loc_picking, false, model);
+
+                    gl.uniform1f(radius_loc_picking, 1.0);
+
+                    gl.bindVertexArray(shapes[i].mVAO);
+                    gl.drawElements(gl.TRIANGLES, shapes[i].length, gl.UNSIGNED_INT, 0);
+
+                    gl.enable(gl.CULL_FACE);
+                }
+        }
+    }
+}
+
+function draw(time)
+{
+    var seconds = time * 0.001;
+
+    gl.clearColor(0.1, 0.1, 0.1, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // shapes
+    drawShapes();
 
     // grid
     gl.useProgram(grid_program);
@@ -1480,7 +1675,24 @@ function draw(time)
     gl.drawElementsInstanced(gl.TRIANGLES, arrow.indices.length, gl.UNSIGNED_INT, 0, grid.matrices.length / (16 + 3));
 
     // gizmos
-    drawGizmo(viewProj);
+    if (isGizmoActive())
+        drawGizmoScreen(viewProj);
+
+    // picking
+    gl.bindFramebuffer(gl.FRAMEBUFFER, picking_fb);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    drawPickingShapes();
+
+    if (isGizmoActive())
+        drawGizmoPicking(viewProj);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.clearColor(0.1, 0.1, 0.1, 1.0);
+    gl.viewport(0, 0, canvas.width, canvas.height);
 
     requestAnimationFrame(draw);
 }
