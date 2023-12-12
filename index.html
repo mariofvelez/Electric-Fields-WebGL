@@ -54,7 +54,7 @@
 
             light += 0.5;
 
-            fragColor = vec4((mix(low_charge, high_charge, (uCharge / 20.0) + 0.5) * light), 1.0);
+            fragColor = vec4((mix(low_charge, high_charge, (uCharge / 20.0) + 0.5) * light), 0.6);
         }
     </script>
     <script id="GizmosVertex-shader" type="vertex">
@@ -470,61 +470,8 @@
                 </div>
                 <button class="btn btn-secondary d-inline menu-input" type="button" id="clear-button">Clear</button>
                 <hr />
-                <!--<p><button id="add-charge-button">Add Charge</button></p>
-                <input type="range" min="1" max="100" value="10" id="test-slider">-->
                 <div id="charge-control-container">
-                    <!--<div class="charge-panel" id="selected-charge">
-                        <div class="charge-header">
-                            <p class="charge-name">Washer</p>
-                            <div class="delete-icon-container">
-                                <i class="fa-solid fa-xmark delete-icon"></i>
-                            </div>
-                        </div>
-                        <div class="charge-input">
-                            <p class="charge-input-label">q:</p>
-                            <input class="charge-input-box" type="number" />
-                        </div>
-                        <div class="charge-input">
-                            <p class="charge-input-label">inner:</p>
-                            <input class="charge-input-box" type="number" />
-                        </div>
-                        <div class="charge-input">
-                            <p class="charge-input-label">outer:</p>
-                            <input class="charge-input-box" type="number" />
-                        </div>
-                    </div>
-                    <hr />
-                    <div class="charge-panel">
-                        <div class="charge-header">
-                            <p class="charge-name">Ring</p>
-                            <div class="delete-icon-container">
-                                <i class="fa-solid fa-xmark delete-icon"></i>
-                            </div>
-                        </div>
-                        <div class="charge-input">
-                            <p class="charge-input-label">q:</p>
-                            <input class="charge-input-box" type="number" />
-                        </div>
-                        <div class="charge-input">
-                            <p class="charge-input-label">radius:</p>
-                            <input class="charge-input-box" type="number" />
-                        </div>
-                    </div>
-                    <hr />
-                    <div class="charge-panel">
-                        <div class="charge-header">
-                            <p class="charge-name">Point</p>
-                            <div class="delete-icon-container">
-                                <i class="fa-solid fa-xmark delete-icon"></i>
-                            </div>
-                        </div>
-                        <div class="charge-input">
-                            <p class="charge-input-label">q:</p>
-                            <input class="charge-input-box" type="number" />
-                        </div>
-                    </div>
-                    <hr />
-                        -->
+                    
                 </div>
             </div>
             <div class="col-9" id="canvas-container">

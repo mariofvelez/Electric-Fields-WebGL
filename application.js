@@ -402,7 +402,7 @@ var grid_loc_arrow_compute;
 var sphere_subdivisions = 8;
 var sphere_radius = 0.1;
 
-const shapes = [];
+var shapes = [];
 
 arrow_compute_program = compileArrowCompute(arrow_compute_vertex_source, arrow_compute_fragment_source, shapes);
 
@@ -1286,6 +1286,7 @@ window.addEventListener("resize", (e) => {
 
 gl.enable(gl.DEPTH_TEST);
 gl.enable(gl.CULL_FACE);
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
 // picking buffer
 const picking_texture = gl.createTexture();
@@ -1338,6 +1339,28 @@ function drawShapes()
     gl.useProgram(program);
 
     gl.uniformMatrix4fv(proj_loc, false, viewProj);
+
+    gl.enable(gl.BLEND);
+
+    // sorting shapes based on distance from camera for blending
+    shapes.sort((a, b) => {
+        const cam_position = getCameraPos(theta, phi);
+        var cam_direction = vec3.fromValues(-cam_position[0], -cam_position[1], -cam_position[2]);
+        vec3.normalize(cam_direction, cam_direction);
+
+
+        var a_direction = vec3.create();
+        vec3.subtract(a_direction, a.position, cam_position);
+
+        var b_direction = vec3.create();
+        vec3.subtract(b_direction, b.position, cam_position);
+
+        const a_dist = vec3.dot(cam_direction, a_direction);
+
+        const b_dist = vec3.dot(cam_direction, b_direction);
+
+        return vec3.dot(cam_direction, b_direction) - vec3.dot(cam_direction, a_direction);
+    });
 
     for (var i = 0; i < shapes.length; ++i)
     {
@@ -1466,6 +1489,8 @@ function drawShapes()
                 }
         }
     }
+
+    gl.disable(gl.BLEND);
 }
 
 function drawPickingShapes()
@@ -1597,9 +1622,6 @@ function draw(time)
     gl.clearColor(0.1, 0.1, 0.1, 1.0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // shapes
-    drawShapes();
-
     // grid
     gl.useProgram(grid_program);
 
@@ -1673,6 +1695,9 @@ function draw(time)
 
     gl.bindVertexArray(aVAO);
     gl.drawElementsInstanced(gl.TRIANGLES, arrow.indices.length, gl.UNSIGNED_INT, 0, grid.matrices.length / (16 + 3));
+
+    // shapes
+    drawShapes();
 
     // gizmos
     if (isGizmoActive())
